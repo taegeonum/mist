@@ -22,6 +22,7 @@ import edu.snu.mist.common.shared.KafkaSharedResource;
 import edu.snu.mist.common.shared.MQTTResource;
 import edu.snu.mist.common.shared.NettySharedResource;
 import edu.snu.mist.core.driver.parameters.DeactivationEnabled;
+import edu.snu.mist.core.driver.parameters.GroupAware;
 import edu.snu.mist.core.driver.parameters.MergingEnabled;
 import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.batchsub.BatchQueryCreator;
@@ -48,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -127,6 +129,10 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
 
   private final GroupAllocationTableModifier groupAllocationTableModifier;
 
+  private final boolean groupAware;
+
+  private final AtomicLong groupIdCounter = new AtomicLong(0);
+
   /**
    * Default query manager in MistTask.
    */
@@ -143,12 +149,14 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
                                                 final KafkaSharedResource kafkaSharedResource,
                                                 final NettySharedResource nettySharedResource,
                                                 final DagGenerator dagGenerator,
+                                                @Parameter(GroupAware.class) final boolean groupAware,
                                                 final GroupAllocationTableModifier groupAllocationTableModifier,
                                                 @Parameter(GroupSchedModelType.class) final String executionModel) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;
     this.groupInfoMap = groupInfoMap;
     this.mergingEnabled = mergingEnabled;
+    this.groupAware = groupAware;
     this.deactivationEnabled = deactivateEnabled;
     this.eventProcessorManager = eventProcessorManager;
     this.configDagGenerator = configDagGenerator;
@@ -180,7 +188,13 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
       // 1) Saves the avr dag to the PlanStore and
       // converts the avro dag to the logical and execution dag
       planStore.saveAvroDag(tuple);
-      final String queryId = tuple.getKey();
+      final String queryId;
+
+      if (groupAware) {
+        queryId = tuple.getKey();
+      }  else {
+        queryId = Long.toString(groupIdCounter.getAndIncrement());
+      }
 
       // Update group information
       final String groupId = tuple.getValue().getSuperGroupId();
