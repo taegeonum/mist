@@ -72,6 +72,14 @@ public final class RoundRobinGroupAssignerImpl implements GroupAssigner {
 
   @Override
   public void assignGroup(final Group newGroup) {
+    int index = (int)counter.getAndIncrement() % groupAllocationTable.size();
+    final EventProcessor eventProcessor =
+        groupAllocationTable.getEventProcessorsNotRunningIsolatedGroup().get(index);
+    final double defaultLoad = getDefaultLoad(eventProcessor);
+    newGroup.setLoad(defaultLoad);
+    groupAllocationTable.getValue(eventProcessor).add(newGroup);
+    newGroup.setEventProcessor(eventProcessor);
+    /*
     try {
       final String groupId = newGroup.getGroupId();
       int index = Integer.valueOf(groupId.substring(3));
@@ -90,6 +98,7 @@ public final class RoundRobinGroupAssignerImpl implements GroupAssigner {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
+    */
   }
 
   @Override
