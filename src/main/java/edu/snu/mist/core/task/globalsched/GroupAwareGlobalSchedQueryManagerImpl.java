@@ -188,16 +188,17 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
       // 1) Saves the avr dag to the PlanStore and
       // converts the avro dag to the logical and execution dag
       planStore.saveAvroDag(tuple);
-      final String queryId;
+      final String queryId = tuple.getKey();
 
-      if (groupAware) {
-        queryId = tuple.getKey();
-      }  else {
-        queryId = Long.toString(groupIdCounter.getAndIncrement());
-      }
 
       // Update group information
-      final String groupId = tuple.getValue().getSuperGroupId();
+      final String groupId;
+      if (groupAware) {
+        groupId = tuple.getValue().getSuperGroupId();
+      } else {
+        groupId = Long.toString(groupIdCounter.getAndIncrement());
+      }
+
       final String subGroupId = tuple.getValue().getSubGroupId();
 
 
