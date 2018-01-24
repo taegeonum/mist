@@ -36,6 +36,7 @@ import edu.snu.mist.core.task.globalsched.dispatch.DispatcherGroupSelectorFactor
 import edu.snu.mist.core.task.globalsched.metrics.DefaultEventProcessorNumAssigner;
 import edu.snu.mist.core.task.globalsched.parameters.*;
 import edu.snu.mist.core.task.metrics.EventProcessorNumAssigner;
+import edu.snu.mist.core.task.threadpool.threadbased.ThreadPoolQueueType;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.JavaConfigurationBuilder;
@@ -78,6 +79,8 @@ public final class MistGroupSchedulingTaskConfigs {
 
   private final boolean pinning;
 
+  private final String tpQueueType;
+
   @Inject
   private MistGroupSchedulingTaskConfigs(
       @Parameter(EventProcessorNumAssignerType.class) final String epaType,
@@ -97,6 +100,7 @@ public final class MistGroupSchedulingTaskConfigs {
       @Parameter(GroupRebalancingPeriod.class) final long rebalancingPeriod,
       @Parameter(GroupIsolationEnabled.class) final boolean groupIsolation,
       @Parameter(IsolationTriggerPeriod.class) final long isolationTriggerPeriod,
+      @Parameter(ThreadPoolQueueType.class) final String tpQueueType,
       @Parameter(UnderloadedGroupThreshold.class) final double underloadedGroupThreshold) {
     this.epaType = epaType;
     this.cpuUtilLowThreshold = cpuUtilLowThreshold;
@@ -109,6 +113,7 @@ public final class MistGroupSchedulingTaskConfigs {
     this.eventProcessorIncreaseNum = eventProcessorIncreaseNum;
     this.pinning = pinning;
     this.groupAware = groupAware;
+    this.tpQueueType = tpQueueType;
     this.dispatcherThreadNum = dispatcherThreadNum;
     this.groupAssignerType = groupAssignerType;
     this.rebalancing = rebalancing;
@@ -201,6 +206,7 @@ public final class MistGroupSchedulingTaskConfigs {
     jcb.bindNamedParameter(GroupRebalancingPeriod.class, Long.toString(rebalancingPeriod));
     jcb.bindNamedParameter(IsolationTriggerPeriod.class, Long.toString(isolationTriggerPeriod));
     jcb.bindNamedParameter(UnderloadedGroupThreshold.class, Double.toString(underloadedGroupThreshold));
+    jcb.bindNamedParameter(ThreadPoolQueueType.class, tpQueueType);
 
     return Configurations.merge(getConfigurationForExecutionModel(), jcb.build());
   }
@@ -228,6 +234,7 @@ public final class MistGroupSchedulingTaskConfigs {
         .registerShortNameOfClass(GroupRebalancingPeriod.class)
         .registerShortNameOfClass(GroupIsolationEnabled.class)
         .registerShortNameOfClass(IsolationTriggerPeriod.class)
+        .registerShortNameOfClass(ThreadPoolQueueType.class)
         .registerShortNameOfClass(UnderloadedGroupThreshold.class);
   }
 }
