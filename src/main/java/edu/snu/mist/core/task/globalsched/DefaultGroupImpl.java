@@ -71,6 +71,8 @@ final class DefaultGroupImpl implements Group {
    */
   private long latestRebalanceTime;
 
+  private final long timeout;
+
   @Inject
   private DefaultGroupImpl(@Parameter(GroupId.class) final String groupId) {
     this.groupId = groupId;
@@ -78,6 +80,7 @@ final class DefaultGroupImpl implements Group {
     this.eventProcessor = new AtomicReference<>(null);
     this.latestRebalanceTime = System.nanoTime();
     this.totalProcessingEvent = new AtomicLong(0);
+    this.timeout = 500;
   }
 
   @Override
@@ -183,10 +186,16 @@ final class DefaultGroupImpl implements Group {
     return numActiveSubGroup.get() > 0;
   }
 
+
+  private long elapsedTime(final long startTime) {
+    return System.currentTimeMillis() - startTime;
+  }
+
   @Override
   public int processAllEvent() {
     int numProcessedEvent = 0;
     Query query = activeQueryQueue.poll();
+    final long startTime = System.currentTimeMillis();
 
     while (query != null) {
 
@@ -204,6 +213,14 @@ final class DefaultGroupImpl implements Group {
       } else {
         activeQueryQueue.add(query);
       }
+
+
+      // Reschedule this group if it still has events to process
+      if (System.currentTimeMillis() - startTime > timeout) {
+        eventProcessor.get().addActiveGroup(this);
+        break;
+      }
+
       query = activeQueryQueue.poll();
     }
 
