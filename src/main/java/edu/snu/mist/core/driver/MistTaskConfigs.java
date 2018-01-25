@@ -34,6 +34,7 @@ import edu.snu.mist.core.task.eventProcessors.parameters.DefaultNumEventProcesso
 import edu.snu.mist.core.task.eventProcessors.parameters.EventProcessorLowerBound;
 import edu.snu.mist.core.task.eventProcessors.parameters.EventProcessorUpperBound;
 import edu.snu.mist.core.task.eventProcessors.parameters.GracePeriod;
+import edu.snu.mist.core.task.groupUnaware.GroupUnawareQueryManagerImpl;
 import edu.snu.mist.core.task.threadbased.ThreadBasedQueryManagerImpl;
 import edu.snu.mist.core.task.threadpool.threadbased.ThreadPoolQueryManagerImpl;
 import edu.snu.mist.formats.avro.ClientToTaskMessage;
@@ -174,6 +175,8 @@ public final class MistTaskConfigs {
         return threadPoolOption();
       case "mist":
         return option2TaskConfigs.getConfiguration();
+      case "qpt":
+        return groupUnawareOption();
       default:
         throw new RuntimeException("Undefined execution model: " + executionModelOption);
     }
@@ -201,6 +204,21 @@ public final class MistTaskConfigs {
   private Configuration threadPoolOption() {
     final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
     jcb.bindImplementation(QueryManager.class, ThreadPoolQueryManagerImpl.class);
+    if (!this.jarSharing) {
+      jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);
+    }
+    if (!this.networkSharing) {
+      jcb.bindImplementation(MQTTResource.class, MQTTNoSharedResource.class);
+    }
+    return jcb.build();
+  }
+
+  /**
+   * Get the configuration for thread pool execution model.
+   */
+  private Configuration groupUnawareOption() {
+    final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
+    jcb.bindImplementation(QueryManager.class, GroupUnawareQueryManagerImpl.class);
     if (!this.jarSharing) {
       jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);
     }

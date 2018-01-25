@@ -18,10 +18,10 @@ package edu.snu.mist.core.task.globalsched.dispatch;
 import edu.snu.mist.core.task.globalsched.Group;
 import edu.snu.mist.core.task.globalsched.GroupEvent;
 import edu.snu.mist.core.task.globalsched.NextGroupSelector;
+import edu.snu.mist.core.task.threadpool.threadbased.LockConcurrentLinkedQueue;
 
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 /**
@@ -34,7 +34,7 @@ public final class DispatcherGroupSelector implements NextGroupSelector {
   private final BlockingQueue<Group> queue;
 
   DispatcherGroupSelector() {
-    this.queue = new LinkedBlockingQueue<>();
+    this.queue = new LockConcurrentLinkedQueue<>();
   }
 
   @Override
