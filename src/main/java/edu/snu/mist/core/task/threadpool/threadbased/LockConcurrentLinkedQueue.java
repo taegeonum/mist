@@ -69,7 +69,7 @@ public final class LockConcurrentLinkedQueue<E> implements BlockingQueue<E> {
 
   @Override
   public boolean offer(final E e, final long timeout, final TimeUnit unit) throws InterruptedException {
-    throw new RuntimeException("Not supported)");
+    return queue.offer(e);
   }
 
   @Override
@@ -105,27 +105,27 @@ public final class LockConcurrentLinkedQueue<E> implements BlockingQueue<E> {
 
   @Override
   public boolean remove(final Object o) {
-    throw new RuntimeException("Not supported)");
+    return queue.remove(o);
   }
 
   @Override
   public boolean containsAll(final Collection<?> c) {
-    throw new RuntimeException("Not supported)");
+    return queue.containsAll(c);
   }
 
   @Override
   public boolean addAll(final Collection<? extends E> c) {
-    throw new RuntimeException("Not supported)");
+    return queue.addAll(c);
   }
 
   @Override
   public boolean removeAll(final Collection<?> c) {
-    throw new RuntimeException("Not supported)");
+    return queue.removeAll(c);
   }
 
   @Override
   public boolean retainAll(final Collection<?> c) {
-    throw new RuntimeException("Not supported)");
+    return retainAll(c);
   }
 
   @Override
