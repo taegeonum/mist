@@ -31,9 +31,6 @@ import edu.snu.mist.core.task.eventProcessors.EventProcessorManager;
 import edu.snu.mist.core.task.eventProcessors.GroupAllocationTableModifier;
 import edu.snu.mist.core.task.eventProcessors.WritingEvent;
 import edu.snu.mist.core.task.globalsched.parameters.GroupSchedModelType;
-import edu.snu.mist.core.task.merging.ImmediateQueryMergingStarter;
-import edu.snu.mist.core.task.merging.MergeAwareQueryRemover;
-import edu.snu.mist.core.task.merging.MergingExecutionDags;
 import edu.snu.mist.core.task.stores.QueryInfoStore;
 import edu.snu.mist.formats.avro.AvroDag;
 import edu.snu.mist.formats.avro.QueryControlResult;
@@ -133,6 +130,10 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
 
   private final AtomicLong groupIdCounter = new AtomicLong(0);
 
+  private final QueryStarter globalQueryStarter;
+
+  private final QueryRemover globalQueryRemover;
+
   /**
    * Default query manager in MistTask.
    */
@@ -149,6 +150,8 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
                                                 final KafkaSharedResource kafkaSharedResource,
                                                 final NettySharedResource nettySharedResource,
                                                 final DagGenerator dagGenerator,
+                                                final QueryStarter queryStarter,
+                                                final QueryRemover queryRemover,
                                                 @Parameter(GroupAware.class) final boolean groupAware,
                                                 final GroupAllocationTableModifier groupAllocationTableModifier,
                                                 @Parameter(GroupSchedModelType.class) final String executionModel) {
@@ -158,6 +161,8 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
     this.mergingEnabled = mergingEnabled;
     this.groupAware = groupAware;
     this.deactivationEnabled = deactivateEnabled;
+    this.globalQueryStarter = queryStarter;
+    this.globalQueryRemover = queryRemover;
     this.eventProcessorManager = eventProcessorManager;
     this.configDagGenerator = configDagGenerator;
     this.batchQueryCreator = batchQueryCreator;
@@ -213,6 +218,7 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
         jcb.bindNamedParameter(GroupId.class, groupId);
 
         // TODO[DELETE] start: for test
+        /*
         if (mergingEnabled) {
           jcb.bindImplementation(QueryStarter.class, ImmediateQueryMergingStarter.class);
           jcb.bindImplementation(QueryRemover.class, MergeAwareQueryRemover.class);
@@ -222,17 +228,23 @@ public final class GroupAwareGlobalSchedQueryManagerImpl implements QueryManager
           jcb.bindImplementation(QueryRemover.class, NoMergingAwareQueryRemover.class);
           jcb.bindImplementation(ExecutionDags.class, NoMergingExecutionDags.class);
         }
+        */
         // TODO[DELETE] end: for test
 
         final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
-        injector.bindVolatileInstance(MQTTResource.class, mqttSharedResource);
-        injector.bindVolatileInstance(KafkaSharedResource.class, kafkaSharedResource);
-        injector.bindVolatileInstance(NettySharedResource.class, nettySharedResource);
+        injector.bindVolatileInstance(QueryStarter.class, globalQueryStarter);
+        injector.bindVolatileInstance(QueryRemover.class, globalQueryRemover);
+
+        //injector.bindVolatileInstance(MQTTResource.class, mqttSharedResource);
+        //injector.bindVolatileInstance(KafkaSharedResource.class, kafkaSharedResource);
+        //injector.bindVolatileInstance(NettySharedResource.class, nettySharedResource);
         injector.bindVolatileInstance(QueryInfoStore.class, planStore);
 
+        /*
         if (!mergingEnabled) {
           injector.bindVolatileInstance(DagGenerator.class, dagGenerator);
         }
+        */
 
         final MetaGroup metaGroup = injector.getInstance(MetaGroup.class);
 
