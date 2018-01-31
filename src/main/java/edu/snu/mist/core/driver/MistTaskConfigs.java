@@ -35,6 +35,7 @@ import edu.snu.mist.core.task.eventProcessors.parameters.EventProcessorLowerBoun
 import edu.snu.mist.core.task.eventProcessors.parameters.EventProcessorUpperBound;
 import edu.snu.mist.core.task.eventProcessors.parameters.GracePeriod;
 import edu.snu.mist.core.task.groupUnaware.GroupUnawareQueryManagerImpl;
+import edu.snu.mist.core.task.ptq.PTQQueryManagerImpl;
 import edu.snu.mist.core.task.threadbased.ThreadBasedQueryManagerImpl;
 import edu.snu.mist.core.task.threadpool.threadbased.ThreadPoolQueryManagerImpl;
 import edu.snu.mist.formats.avro.ClientToTaskMessage;
@@ -177,9 +178,23 @@ public final class MistTaskConfigs {
         return option2TaskConfigs.getConfiguration();
       case "qpt":
         return groupUnawareOption();
+      case "ptq":
+        return ptqOption();
       default:
         throw new RuntimeException("Undefined execution model: " + executionModelOption);
     }
+  }
+
+  private Configuration ptqOption() {
+    final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
+    jcb.bindImplementation(QueryManager.class, PTQQueryManagerImpl.class);
+    if (!this.jarSharing) {
+      jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);
+    }
+    if (!this.networkSharing) {
+      jcb.bindImplementation(MQTTResource.class, MQTTNoSharedResource.class);
+    }
+    return jcb.build();
   }
 
   /**

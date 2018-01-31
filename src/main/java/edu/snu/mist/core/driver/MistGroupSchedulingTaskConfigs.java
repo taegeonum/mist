@@ -19,7 +19,7 @@ import edu.snu.mist.core.driver.parameters.EventProcessorNumAssignerType;
 import edu.snu.mist.core.driver.parameters.GroupAware;
 import edu.snu.mist.core.driver.parameters.GroupIsolationEnabled;
 import edu.snu.mist.core.parameters.Pinning;
-import edu.snu.mist.core.task.*;
+import edu.snu.mist.core.task.QueryManager;
 import edu.snu.mist.core.task.eventProcessors.*;
 import edu.snu.mist.core.task.eventProcessors.groupAssigner.GroupAssigner;
 import edu.snu.mist.core.task.eventProcessors.groupAssigner.MinLoadGroupAssignerImpl;
@@ -35,9 +35,6 @@ import edu.snu.mist.core.task.globalsched.cfs.parameters.MinSchedulingPeriod;
 import edu.snu.mist.core.task.globalsched.dispatch.DispatcherGroupSelectorFactory;
 import edu.snu.mist.core.task.globalsched.metrics.DefaultEventProcessorNumAssigner;
 import edu.snu.mist.core.task.globalsched.parameters.*;
-import edu.snu.mist.core.task.merging.ImmediateQueryMergingStarter;
-import edu.snu.mist.core.task.merging.MergeAwareQueryRemover;
-import edu.snu.mist.core.task.merging.MergingExecutionDags;
 import edu.snu.mist.core.task.metrics.EventProcessorNumAssigner;
 import edu.snu.mist.core.task.threadpool.threadbased.ThreadPoolQueueType;
 import org.apache.reef.tang.Configuration;
@@ -194,16 +191,6 @@ public final class MistGroupSchedulingTaskConfigs {
       jcb.bindImplementation(GroupIsolator.class, NoGroupIsolator.class);
     } else {
       jcb.bindImplementation(GroupIsolator.class, DefaultGroupIsolatorImpl.class);
-    }
-
-    if (groupAware) {
-      jcb.bindImplementation(QueryStarter.class, ImmediateQueryMergingStarter.class);
-      jcb.bindImplementation(QueryRemover.class, MergeAwareQueryRemover.class);
-      jcb.bindImplementation(ExecutionDags.class, MergingExecutionDags.class);
-    } else {
-      jcb.bindImplementation(QueryStarter.class, NoMergingQueryStarter.class);
-      jcb.bindImplementation(QueryRemover.class, NoMergingAwareQueryRemover.class);
-      jcb.bindImplementation(ExecutionDags.class, NoMergingExecutionDags.class);
     }
 
     jcb.bindNamedParameter(CpuUtilLowThreshold.class, Double.toString(cpuUtilLowThreshold));
