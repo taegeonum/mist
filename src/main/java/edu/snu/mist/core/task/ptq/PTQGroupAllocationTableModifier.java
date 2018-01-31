@@ -188,22 +188,8 @@ public final class PTQGroupAllocationTableModifier implements AutoCloseable {
               // TODO
               break;
             case REBALANCE:
-              loadUpdater.update();
-              //isolatedGroupReassigner.reassignIsolatedGroups();
-
-              // 1. merging first
-              if (isSplit) {
-                groupMerger.groupMerging();
-
-                // 2. reassignment
-                groupRebalancer.triggerRebalancing();
-
-                // 3. split groups
-                groupSplitter.splitGroup();
-              }
               break;
             case ISOLATION:
-              groupIsolator.triggerIsolation();
               break;
             default:
               throw new RuntimeException("Not supported event type: " + event.getEventType());
