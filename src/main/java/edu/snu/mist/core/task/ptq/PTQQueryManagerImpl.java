@@ -28,6 +28,7 @@ import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.batchsub.BatchQueryCreator;
 import edu.snu.mist.core.task.deactivation.GroupSourceManager;
 import edu.snu.mist.core.task.eventProcessors.EventProcessorManager;
+import edu.snu.mist.core.task.eventProcessors.GroupAllocationTableModifier;
 import edu.snu.mist.core.task.eventProcessors.WritingEvent;
 import edu.snu.mist.core.task.globalsched.GlobalSchedGroupInfoMap;
 import edu.snu.mist.core.task.globalsched.Group;
@@ -129,7 +130,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
 
   private final DagGenerator dagGenerator;
 
-  private final PTQGroupAllocationTableModifier groupAllocationTableModifier;
+  private final GroupAllocationTableModifier groupAllocationTableModifier;
 
   private final boolean groupAware;
 
@@ -152,7 +153,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
                               final NettySharedResource nettySharedResource,
                               final DagGenerator dagGenerator,
                               @Parameter(GroupAware.class) final boolean groupAware,
-                              final PTQGroupAllocationTableModifier groupAllocationTableModifier,
+                              final GroupAllocationTableModifier groupAllocationTableModifier,
                               @Parameter(GroupSchedModelType.class) final String executionModel) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;

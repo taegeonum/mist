@@ -46,7 +46,7 @@ public class EventProcessorManagerTest {
   private static final int MIN_NUM_THREADS = 2;
   private GroupRebalancer groupRebalancer;
   private TestGroupAssigner groupBalancer;
-  private GroupAllocationTableModifier groupAllocationTableModifier;
+  private GroupAllocationTableModifierImpl groupAllocationTableModifier;
 
   @Before
   public void setUp() throws InjectionException {
@@ -62,7 +62,7 @@ public class EventProcessorManagerTest {
     injector.bindVolatileInstance(GroupRebalancer.class, groupRebalancer);
     injector.bindVolatileInstance(GroupAssigner.class, groupBalancer);
     eventProcessorManager = injector.getInstance(DefaultEventProcessorManager.class);
-    groupAllocationTableModifier = injector.getInstance(GroupAllocationTableModifier.class);
+    groupAllocationTableModifier = injector.getInstance(GroupAllocationTableModifierImpl.class);
   }
 
   @After

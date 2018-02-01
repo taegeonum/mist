@@ -30,11 +30,13 @@ import edu.snu.mist.core.parameters.MqttSourceKeepAliveSec;
 import edu.snu.mist.core.parameters.NumPeriodicSchedulerThreads;
 import edu.snu.mist.core.parameters.TempFolderPath;
 import edu.snu.mist.core.task.*;
+import edu.snu.mist.core.task.eventProcessors.GroupAllocationTableModifier;
 import edu.snu.mist.core.task.eventProcessors.parameters.DefaultNumEventProcessors;
 import edu.snu.mist.core.task.eventProcessors.parameters.EventProcessorLowerBound;
 import edu.snu.mist.core.task.eventProcessors.parameters.EventProcessorUpperBound;
 import edu.snu.mist.core.task.eventProcessors.parameters.GracePeriod;
 import edu.snu.mist.core.task.groupUnaware.GroupUnawareQueryManagerImpl;
+import edu.snu.mist.core.task.ptq.PTQGroupAllocationTableModifier;
 import edu.snu.mist.core.task.ptq.PTQQueryManagerImpl;
 import edu.snu.mist.core.task.threadbased.ThreadBasedQueryManagerImpl;
 import edu.snu.mist.core.task.threadpool.threadbased.ThreadPoolQueryManagerImpl;
@@ -188,6 +190,7 @@ public final class MistTaskConfigs {
   private Configuration ptqOption() {
     final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
     jcb.bindImplementation(QueryManager.class, PTQQueryManagerImpl.class);
+    jcb.bindImplementation(GroupAllocationTableModifier.class, PTQGroupAllocationTableModifier.class);
     if (!this.jarSharing) {
       jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);
     }
