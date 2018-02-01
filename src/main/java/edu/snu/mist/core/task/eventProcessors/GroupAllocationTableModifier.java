@@ -31,7 +31,7 @@ public interface GroupAllocationTableModifier extends AutoCloseable {
   /**
    * Add an event that modifies the group allocation table.
    */
-  public void addEvent(WritingEvent event);
+  void addEvent(WritingEvent event);
 
-  public BlockingQueue<WritingEvent> getWritingEventQueue();
+  BlockingQueue<WritingEvent> getWritingEventQueue();
 }
