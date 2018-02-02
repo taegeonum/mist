@@ -62,6 +62,8 @@ final class DefaultGroupImpl implements Group {
 
   private final AtomicLong processingTime = new AtomicLong(0);
 
+  private long movingTime;
+
   /**
    * The number of processed events in the group.
    */
@@ -81,6 +83,7 @@ final class DefaultGroupImpl implements Group {
     this.latestRebalanceTime = System.nanoTime();
     this.totalProcessingEvent = new AtomicLong(0);
     this.timeout = 500;
+    this.movingTime = System.currentTimeMillis();
   }
 
   @Override
@@ -230,6 +233,16 @@ final class DefaultGroupImpl implements Group {
   @Override
   public void setLatestRebalanceTime(final long rebalanceTime) {
     latestRebalanceTime = rebalanceTime;
+  }
+
+  @Override
+  public long getLatestMovingTime() {
+    return movingTime;
+  }
+
+  @Override
+  public void setLatestMovingTime(final long t) {
+    movingTime = t;
   }
 
   @Override

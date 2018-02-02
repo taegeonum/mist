@@ -27,6 +27,7 @@ import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -243,9 +244,17 @@ public final class DefaultGroupMergerImpl implements GroupMerger {
                 // 3. merge!
                 if (merge(highLoadGroup, highLoadGroups, highLoadThread, lowLoadGroup)) {
                   rebNum += 1;
+
+                  if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+                    break;
+                  }
                 }
               }
             }
+          }
+
+          if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+            break;
           }
         }
       }

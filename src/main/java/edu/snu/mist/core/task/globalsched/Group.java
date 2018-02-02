@@ -133,6 +133,10 @@ public interface Group extends AutoCloseable {
    */
   void setLatestRebalanceTime(long t);
 
+  long getLatestMovingTime();
+
+  void setLatestMovingTime(long t);
+
   /**
    * The number of remaining events.
    * @return

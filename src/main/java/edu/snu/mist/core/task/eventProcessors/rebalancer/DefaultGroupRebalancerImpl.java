@@ -26,6 +26,7 @@ import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -210,19 +211,30 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
           });
 
           for (final Group highLoadGroup : sortedHighLoadGroups) {
-            final double groupLoad = highLoadGroup.getLoad();
+            // do not move a group if it is already moved before 5 min
+            if (System.currentTimeMillis() - highLoadGroup.getLatestMovingTime() >= TimeUnit.SECONDS.toMillis(300)) {
+              final double groupLoad = highLoadGroup.getLoad();
+              if (!highLoadGroup.isSplited()) {
+                // Rebalance!!!
+                if (highLoadThread.getLoad() - groupLoad >= targetLoad) {
+                  final EventProcessor peek = underloadedThreads.peek();
+                  if (peek.getLoad() + groupLoad <= targetLoad) {
+                    final EventProcessor lowLoadThread = underloadedThreads.poll();
+                    moveGroup(highLoadGroup, highLoadGroups, highLoadThread, lowLoadThread, underloadedThreads);
+                    rebNum += 1;
+                    highLoadGroup.setLatestMovingTime(System.currentTimeMillis());
 
-            if (!highLoadGroup.isSplited()) {
-              // Rebalance!!!
-              if (highLoadThread.getLoad() - groupLoad >= targetLoad) {
-                final EventProcessor peek = underloadedThreads.peek();
-                if (peek.getLoad() + groupLoad <= targetLoad) {
-                  final EventProcessor lowLoadThread = underloadedThreads.poll();
-                  moveGroup(highLoadGroup, highLoadGroups, highLoadThread, lowLoadThread, underloadedThreads);
-                  rebNum += 1;
+                    if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+                      break;
+                    }
+                  }
                 }
               }
             }
+          }
+
+          if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+            break;
           }
         }
       }

@@ -31,6 +31,7 @@ import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -250,6 +251,10 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
                   rebNum += 1;
                   n += 1;
+
+                  if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+                    break;
+                  }
                 }
               }
 
@@ -259,6 +264,10 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               //    new Object[]{highLoadThread, lowLoadThread, n, highLoadGroup.toString()});
             }
 
+          }
+
+          if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+            break;
           }
         }
       }
