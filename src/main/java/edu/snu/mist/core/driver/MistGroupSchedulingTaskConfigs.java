@@ -15,10 +15,12 @@
  */
 package edu.snu.mist.core.driver;
 
-import edu.snu.mist.core.driver.parameters.EventProcessorNumAssignerType;
-import edu.snu.mist.core.driver.parameters.GroupAware;
-import edu.snu.mist.core.driver.parameters.GroupIsolationEnabled;
+import edu.snu.mist.common.shared.MQTTNoSharedResource;
+import edu.snu.mist.common.shared.MQTTResource;
+import edu.snu.mist.core.driver.parameters.*;
 import edu.snu.mist.core.parameters.Pinning;
+import edu.snu.mist.core.task.ClassLoaderProvider;
+import edu.snu.mist.core.task.NoSharingURLClassLoaderProvider;
 import edu.snu.mist.core.task.QueryManager;
 import edu.snu.mist.core.task.eventProcessors.*;
 import edu.snu.mist.core.task.eventProcessors.groupAssigner.GroupAssigner;
@@ -81,6 +83,9 @@ public final class MistGroupSchedulingTaskConfigs {
 
   private final String tpQueueType;
 
+  private final boolean jarSharing;
+  private final boolean networkSharing;
+
   @Inject
   private MistGroupSchedulingTaskConfigs(
       @Parameter(EventProcessorNumAssignerType.class) final String epaType,
@@ -101,6 +106,8 @@ public final class MistGroupSchedulingTaskConfigs {
       @Parameter(GroupIsolationEnabled.class) final boolean groupIsolation,
       @Parameter(IsolationTriggerPeriod.class) final long isolationTriggerPeriod,
       @Parameter(ThreadPoolQueueType.class) final String tpQueueType,
+      @Parameter(JarSharing.class) final boolean jarSharing,
+      @Parameter(NetworkSharing.class) final boolean networkSharing,
       @Parameter(UnderloadedGroupThreshold.class) final double underloadedGroupThreshold) {
     this.epaType = epaType;
     this.cpuUtilLowThreshold = cpuUtilLowThreshold;
@@ -121,6 +128,8 @@ public final class MistGroupSchedulingTaskConfigs {
     this.groupIsolation = groupIsolation;
     this.isolationTriggerPeriod = isolationTriggerPeriod;
     this.underloadedGroupThreshold = underloadedGroupThreshold;
+    this.jarSharing = jarSharing;
+    this.networkSharing = networkSharing;
   }
 
   /**
@@ -191,6 +200,13 @@ public final class MistGroupSchedulingTaskConfigs {
       jcb.bindImplementation(GroupIsolator.class, NoGroupIsolator.class);
     } else {
       jcb.bindImplementation(GroupIsolator.class, DefaultGroupIsolatorImpl.class);
+    }
+
+    if (!this.jarSharing) {
+      jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);
+    }
+    if (!this.networkSharing) {
+      jcb.bindImplementation(MQTTResource.class, MQTTNoSharedResource.class);
     }
 
     jcb.bindNamedParameter(CpuUtilLowThreshold.class, Double.toString(cpuUtilLowThreshold));
