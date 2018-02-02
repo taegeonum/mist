@@ -101,7 +101,10 @@ final class DefaultGroupImpl implements Group {
       final int n = numActiveSubGroup.getAndIncrement();
 
       if (n == 0) {
-        eventProcessor.get().addActiveGroup(this);
+        final EventProcessor ep = eventProcessor.get();
+        if (ep != null) {
+          ep.addActiveGroup(this);
+        }
       }
     }
   }
@@ -118,7 +121,10 @@ final class DefaultGroupImpl implements Group {
     //System.out.println("Event is added at Group, # group: " + n);
 
     if (n == 0) {
-      eventProcessor.get().addActiveGroup(this);
+      final EventProcessor ep = eventProcessor.get();
+      if (ep != null) {
+        ep.addActiveGroup(this);
+      }
     }
   }
 
@@ -220,7 +226,10 @@ final class DefaultGroupImpl implements Group {
 
       // Reschedule this group if it still has events to process
       if (System.currentTimeMillis() - startTime > timeout) {
-        eventProcessor.get().addActiveGroup(this);
+        final EventProcessor ep = eventProcessor.get();
+        if (ep != null) {
+          ep.addActiveGroup(this);
+        }
         break;
       }
 

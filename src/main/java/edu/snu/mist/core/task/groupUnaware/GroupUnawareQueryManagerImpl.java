@@ -101,7 +101,6 @@ public final class GroupUnawareQueryManagerImpl implements QueryManager {
     this.queues = new ArrayList<>(numThreads);
     this.threads = new ArrayList<>(numThreads);
 
-
     for (int i = 0; i < numThreads; i++) {
       final BlockingQueue<Runnable> queue = new LockConcurrentLinkedQueue<>();
       final Thread thread = new Thread(() -> {

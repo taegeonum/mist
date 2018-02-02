@@ -123,12 +123,13 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
     final Collection<Group> lowLoadGroups =
         groupAllocationTable.getValue(lowLoadThread);
 
+    lowLoadGroups.add(highLoadGroup);
+    highLoadGroup.setEventProcessor(lowLoadThread);
+
     while (highLoadThread.removeActiveGroup(highLoadGroup)) {
       // remove all elements
     }
 
-    lowLoadGroups.add(highLoadGroup);
-    highLoadGroup.setEventProcessor(lowLoadThread);
     highLoadGroups.remove(highLoadGroup);
 
     // Update overloaded thread load
