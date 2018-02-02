@@ -51,7 +51,7 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
     for (final EventProcessor eventProcessor : eventProcessors) {
       updateGroupAndThreadLoad(eventProcessor, groupAllocationTable.getValue(eventProcessor));
     }
-    LOG.info(groupAllocationTable.toString());
+    //LOG.info(groupAllocationTable.toString());
   }
 
 
