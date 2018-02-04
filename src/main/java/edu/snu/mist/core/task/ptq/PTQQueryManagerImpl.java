@@ -215,9 +215,15 @@ public final class PTQQueryManagerImpl implements QueryManager {
         final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
 
         // TODO[DELETE] start: for test
-        jcb.bindImplementation(QueryStarter.class, ImmediateQueryMergingStarter.class);
-        jcb.bindImplementation(QueryRemover.class, MergeAwareQueryRemover.class);
-        jcb.bindImplementation(ExecutionDags.class, MergingExecutionDags.class);
+        if (mergingEnabled) {
+          jcb.bindImplementation(QueryStarter.class, ImmediateQueryMergingStarter.class);
+          jcb.bindImplementation(QueryRemover.class, MergeAwareQueryRemover.class);
+          jcb.bindImplementation(ExecutionDags.class, MergingExecutionDags.class);
+        } else {
+          jcb.bindImplementation(QueryStarter.class, NoMergingQueryStarter.class);
+          jcb.bindImplementation(QueryRemover.class, NoMergingAwareQueryRemover.class);
+          jcb.bindImplementation(ExecutionDags.class, NoMergingExecutionDags.class);
+        }
         // TODO[DELETE] end: for test
 
         final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
@@ -225,6 +231,10 @@ public final class PTQQueryManagerImpl implements QueryManager {
         injector.bindVolatileInstance(KafkaSharedResource.class, kafkaSharedResource);
         injector.bindVolatileInstance(NettySharedResource.class, nettySharedResource);
         injector.bindVolatileInstance(QueryInfoStore.class, planStore);
+
+        if (!mergingEnabled) {
+          injector.bindVolatileInstance(DagGenerator.class, dagGenerator);
+        }
 
         final MetaGroup metaGroup = injector.getInstance(MetaGroup.class);
 
