@@ -71,6 +71,8 @@ final class DefaultGroupImpl implements Group {
    */
   private long latestMovedTime;
 
+  private long latestLoadUpdateTime;
+
   @Inject
   private DefaultGroupImpl(@Parameter(GroupId.class) final String groupId) {
     this.groupId = groupId;
@@ -78,6 +80,7 @@ final class DefaultGroupImpl implements Group {
     this.eventProcessor = new AtomicReference<>(null);
     this.latestMovedTime = System.currentTimeMillis();
     this.totalProcessingEvent = new AtomicLong(0);
+    this.latestLoadUpdateTime = System.nanoTime();
   }
 
   @Override
@@ -255,6 +258,16 @@ final class DefaultGroupImpl implements Group {
   @Override
   public boolean isSplited() {
     return metaGroup.getGroups().size() > 1;
+  }
+
+  @Override
+  public long getLatestLoadUpdateTime() {
+    return latestLoadUpdateTime;
+  }
+
+  @Override
+  public void setLatestLoadUpdateTime(final long t) {
+    latestLoadUpdateTime = t;
   }
 
   @Override

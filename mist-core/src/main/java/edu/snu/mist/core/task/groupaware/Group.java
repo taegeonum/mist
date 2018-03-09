@@ -129,6 +129,10 @@ public interface Group extends AutoCloseable {
    */
   boolean isSplited();
 
+  long getLatestLoadUpdateTime();
+
+  void setLatestLoadUpdateTime(long t);
+
   /**
    * Get the latest time that the group is assigned to another event processor.
    */
