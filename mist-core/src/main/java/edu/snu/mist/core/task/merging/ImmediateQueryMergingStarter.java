@@ -182,6 +182,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
       final Map<ConfigVertex, ExecutionVertex> subDagMap =
           commonSubDagFinder.findSubDag(sharableExecutionDag, submittedDag);
 
+      System.out.println("Query merging " + queryId);
+
       // After that, we should merge the sharable dag with the submitted dag
       // and update the output emitters of the sharable dag
       final Set<ConfigVertex> visited = new HashSet<>(submittedDag.numberOfVertices());

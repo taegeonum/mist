@@ -212,6 +212,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     injector.bindVolatileInstance(QueryInfoStore.class, planStore);
 
     final ApplicationInfo applicationInfo = injector.getInstance(ApplicationInfo.class);
+    System.out.println("appId " + appId + " created");
 
     applicationMap.putIfAbsent(appId, applicationInfo);
 
