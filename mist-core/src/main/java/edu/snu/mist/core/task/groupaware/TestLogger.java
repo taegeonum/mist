@@ -21,8 +21,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public final class TestLogger {
 
-  private long queryCreationTime = 0;
-  private long queryMergingTime = 0;
+  private final AtomicLong queryCreationTime = new AtomicLong(0);
+  private final AtomicLong queryMergingTime = new AtomicLong(0);
   private long deserializationTime = 0;
   private final AtomicLong endToendQueryStartTime = new AtomicLong(0);
 
@@ -31,20 +31,12 @@ public final class TestLogger {
 
   }
 
-  public long getQueryCreationTime() {
+  public AtomicLong getQueryCreationTime() {
     return queryCreationTime;
   }
 
-  public void setQueryCreationTime(final long queryCreationTime) {
-    this.queryCreationTime = queryCreationTime;
-  }
-
-  public long getQueryMergingTime() {
+  public AtomicLong getQueryMergingTime() {
     return queryMergingTime;
-  }
-
-  public void setQueryMergingTime(final long queryMergingTime) {
-    this.queryMergingTime = queryMergingTime;
   }
 
   public long getDeserializationTime() {
@@ -60,8 +52,8 @@ public final class TestLogger {
   }
 
   public void print() {
-    System.out.println("Query creation time (w/o merging): " + TimeUnit.NANOSECONDS.toMicros(queryCreationTime));
-    System.out.println("Query merging time: " + TimeUnit.NANOSECONDS.toMicros(queryMergingTime));
-    System.out.println("Query start time : " + TimeUnit.NANOSECONDS.toMicros(endToendQueryStartTime.get()));
+    System.out.println("Query creation time (w/o merging): " + TimeUnit.NANOSECONDS.toMillis(queryCreationTime.get()));
+    System.out.println("Query merging time: " + TimeUnit.NANOSECONDS.toMillis(queryMergingTime.get()));
+    System.out.println("Query start time : " + TimeUnit.NANOSECONDS.toMillis(endToendQueryStartTime.get()));
   }
 }

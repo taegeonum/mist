@@ -227,6 +227,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     injector.bindVolatileInstance(KafkaSharedResource.class, kafkaSharedResource);
     injector.bindVolatileInstance(NettySharedResource.class, nettySharedResource);
     injector.bindVolatileInstance(QueryInfoStore.class, planStore);
+    injector.bindVolatileInstance(TestLogger.class, logger);
 
     final ApplicationInfo applicationInfo = injector.getInstance(ApplicationInfo.class);
 

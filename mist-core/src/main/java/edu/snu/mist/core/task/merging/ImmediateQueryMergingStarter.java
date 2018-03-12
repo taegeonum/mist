@@ -145,7 +145,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
         }
 
         executionDags.add(executionDag);
-        logger.setQueryCreationTime(logger.getQueryCreationTime() + (System.nanoTime() - st));
+        logger.getQueryCreationTime().addAndGet(System.nanoTime() - st);
         return;
       }
 
@@ -210,7 +210,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
         }
       }
 
-      logger.setQueryMergingTime(logger.getQueryMergingTime() + (System.nanoTime() - st));
+      logger.getQueryMergingTime().getAndAdd(System.nanoTime() - st);
       //System.out.println(String.format("!OB2\t%d\t%d", (System.currentTimeMillis() - st), queryId));
     }
   }
