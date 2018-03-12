@@ -17,13 +17,14 @@ package edu.snu.mist.core.task.groupaware;
 
 import javax.inject.Inject;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class TestLogger {
 
   private long queryCreationTime = 0;
   private long queryMergingTime = 0;
   private long deserializationTime = 0;
-  private long endToendQueryStartTime = 0;
+  private final AtomicLong endToendQueryStartTime = new AtomicLong(0);
 
   @Inject
   private TestLogger() {
@@ -54,17 +55,13 @@ public final class TestLogger {
     this.deserializationTime = deserializationTime;
   }
 
-  public long getEndToendQueryStartTime() {
+  public AtomicLong getEndToendQueryStartTime() {
     return endToendQueryStartTime;
   }
 
-  public void setEndToendQueryStartTime(final long endToendQueryStartTime) {
-    this.endToendQueryStartTime = endToendQueryStartTime;
-  }
-
   public void print() {
-    System.out.println("Query creation time (w/o merging): " + TimeUnit.NANOSECONDS.toMillis(queryCreationTime));
-    System.out.println("Query merging time: " + TimeUnit.NANOSECONDS.toMillis(queryMergingTime));
-    System.out.println("Query start time : " + TimeUnit.NANOSECONDS.toMillis(endToendQueryStartTime));
+    System.out.println("Query creation time (w/o merging): " + TimeUnit.NANOSECONDS.toMicros(queryCreationTime));
+    System.out.println("Query merging time: " + TimeUnit.NANOSECONDS.toMicros(queryMergingTime));
+    System.out.println("Query start time : " + TimeUnit.NANOSECONDS.toMicros(endToendQueryStartTime.get()));
   }
 }

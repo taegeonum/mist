@@ -178,7 +178,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       queryControlResult.setIsSuccess(true);
       queryControlResult.setMsg(ResultMessage.submitSuccess(tuple.getKey()));
 
-      logger.setEndToendQueryStartTime(logger.getEndToendQueryStartTime() + (System.nanoTime() - st));
+      logger.getEndToendQueryStartTime().addAndGet(System.nanoTime() - st);
       //System.out.println(String.format("!QS\t%d\t%d", (System.currentTimeMillis() - st), queryId));
 
       int n = queryNum.incrementAndGet();
