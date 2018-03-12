@@ -23,7 +23,7 @@ public final class TestLogger {
 
   private final AtomicLong queryCreationTime = new AtomicLong(0);
   private final AtomicLong queryMergingTime = new AtomicLong(0);
-  private long deserializationTime = 0;
+  private final AtomicLong deserializationTime = new AtomicLong(0);
   private final AtomicLong endToendQueryStartTime = new AtomicLong(0);
 
   @Inject
@@ -39,12 +39,8 @@ public final class TestLogger {
     return queryMergingTime;
   }
 
-  public long getDeserializationTime() {
+  public AtomicLong getDeserializationTime() {
     return deserializationTime;
-  }
-
-  public void setDeserializationTime(final long deserializationTime) {
-    this.deserializationTime = deserializationTime;
   }
 
   public AtomicLong getEndToendQueryStartTime() {
@@ -52,6 +48,7 @@ public final class TestLogger {
   }
 
   public void print() {
+    System.out.println("Query (de)serialization time: " + deserializationTime.get());
     System.out.println("Query creation time (w/o merging): " + TimeUnit.NANOSECONDS.toMillis(queryCreationTime.get()));
     System.out.println("Query merging time: " + TimeUnit.NANOSECONDS.toMillis(queryMergingTime.get()));
     System.out.println("Query start time : " + TimeUnit.NANOSECONDS.toMillis(endToendQueryStartTime.get()));

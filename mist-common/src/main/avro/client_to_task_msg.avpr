@@ -27,6 +27,10 @@
       "fields":
       [
         {
+          "name": "time",
+          "type": "long"
+        },
+        {
           "name": "AppId",
           "type": "string"
         },
