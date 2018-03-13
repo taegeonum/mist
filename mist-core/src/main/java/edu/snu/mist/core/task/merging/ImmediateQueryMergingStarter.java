@@ -132,12 +132,18 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
         // Set up the output emitters of the submitted DAG
         QueryStarterUtils.setUpOutputEmitters(executionDag, query);
 
+        logger.getExecutionDagGenerationTime().addAndGet(System.nanoTime() - st);
+
+        final long st2 = System.nanoTime();
+
         for (final ExecutionVertex source : executionDag.getDag().getRootVertices()) {
           // Start the source
           final PhysicalSource src = (PhysicalSource) source;
           srcAndDagMap.put(src.getConfiguration(), executionDag);
           src.start();
         }
+
+        logger.getSourceStartTime().addAndGet(System.nanoTime() - st2);
 
         // Update the execution dag of the execution vertex
         for (final ExecutionVertex ev : executionDag.getDag().getVertices()) {
