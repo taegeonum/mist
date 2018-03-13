@@ -180,8 +180,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
 
       if (queryNum.incrementAndGet() % 10000 == 0) {
         final MemoryUsage mem = getHeapMemoryUse();
-        System.out.println("## Current mem usage: " + mem.getUsed() + ", "
-            + (mem.getUsed() - memUsage.getUsed()) + (mem.getUsed() / mem.getMax()));
+        System.out.println("## At " + queryNum + " queries Current mem usage: " + (mem.getUsed()/1000000) + ", "
+            + (mem.getUsed() - memUsage.getUsed())/1000000 + ", " + (mem.getUsed() / mem.getMax()));
         memUsage = mem;
       }
 
