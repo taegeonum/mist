@@ -234,7 +234,11 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
                            final ClassLoader classLoader) throws IOException, InjectionException {
     final ExecutionVertex currExecutionVertex;
     if (created.get(currVertex) == null) {
+
+      final long st = System.nanoTime();
       currExecutionVertex = executionVertexGenerator.generate(currVertex, urls, classLoader);
+      logger.getObjectCreationTime().addAndGet(System.nanoTime() - st);
+
       created.put(currVertex, currExecutionVertex);
       executionVertexCountMap.put(currExecutionVertex, 1);
       executionVertexDagMap.put(currExecutionVertex, executionDag);
@@ -267,7 +271,11 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
 
     final Map<ConfigVertex, ExecutionVertex> created = new HashMap<>(configDag.numberOfVertices());
     for (final ConfigVertex source : configDag.getRootVertices()) {
+      final long st = System.nanoTime();
+
       final ExecutionVertex currExecutionVertex = executionVertexGenerator.generate(source, urls, classLoader);
+      logger.getObjectCreationTime().addAndGet(System.nanoTime() - st);
+
       created.put(source, currExecutionVertex);
       configExecutionVertexMap.put(source, currExecutionVertex);
       executionVertexCountMap.put(currExecutionVertex, 1);
