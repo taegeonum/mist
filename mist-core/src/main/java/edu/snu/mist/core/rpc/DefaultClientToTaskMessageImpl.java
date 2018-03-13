@@ -61,7 +61,7 @@ public final class DefaultClientToTaskMessageImpl implements ClientToTaskMessage
     final String queryId = queryIdGenerator.generate(avroDag);
     //logger.setDeserializationTime();
     //System.out.println(String.format("!DS\t%d\t%d", queryId, System.currentTimeMillis()));
-    logger.getDeserializationTime().addAndGet(System.currentTimeMillis() - avroDag.getTime());
+    //logger.getDeserializationTime().addAndGet(System.currentTimeMillis() - avroDag.getTime());
     return queryManager.create(new Tuple<>(queryId, avroDag));
   }
 

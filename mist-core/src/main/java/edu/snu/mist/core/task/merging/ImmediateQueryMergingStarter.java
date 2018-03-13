@@ -127,14 +127,14 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
 
       // Exit the merging process if there is no mergeable dag
       if (mergeableDags.size() == 0) {
-        final long st = System.nanoTime();
+        //final long st = System.nanoTime();
         final ExecutionDag executionDag = generate(submittedDag, jarFilePaths);
         // Set up the output emitters of the submitted DAG
         QueryStarterUtils.setUpOutputEmitters(executionDag, query);
 
-        logger.getExecutionDagGenerationTime().addAndGet(System.nanoTime() - st);
+        //logger.getExecutionDagGenerationTime().addAndGet(System.nanoTime() - st);
 
-        final long st2 = System.nanoTime();
+        //final long st2 = System.nanoTime();
 
         for (final ExecutionVertex source : executionDag.getDag().getRootVertices()) {
           // Start the source
@@ -143,7 +143,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
           src.start();
         }
 
-        logger.getSourceStartTime().addAndGet(System.nanoTime() - st2);
+        //logger.getSourceStartTime().addAndGet(System.nanoTime() - st2);
 
         // Update the execution dag of the execution vertex
         for (final ExecutionVertex ev : executionDag.getDag().getVertices()) {
@@ -151,7 +151,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
         }
 
         executionDags.add(executionDag);
-        logger.getQueryCreationTime().addAndGet(System.nanoTime() - st);
+        //logger.getQueryCreationTime().addAndGet(System.nanoTime() - st);
         return;
       }
 
