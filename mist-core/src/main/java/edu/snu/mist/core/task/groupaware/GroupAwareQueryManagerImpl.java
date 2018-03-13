@@ -107,6 +107,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
   /**
    * Default query manager in MistTask.
    */
+
   @Inject
   private GroupAwareQueryManagerImpl(final ScheduledExecutorServiceWrapper schedulerWrapper,
                                      final QueryInfoStore planStore,
@@ -226,8 +227,9 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     injector.bindVolatileInstance(MQTTResource.class, mqttSharedResource);
     injector.bindVolatileInstance(KafkaSharedResource.class, kafkaSharedResource);
     injector.bindVolatileInstance(NettySharedResource.class, nettySharedResource);
-    injector.bindVolatileInstance(QueryInfoStore.class, planStore);
+    injector.bindVolatileInstance(QueryInfoStore.class, planStore); 
     injector.bindVolatileInstance(TestLogger.class, logger);
+    injector.bindVolatileInstance(DagGenerator.class, dagGenerator);
 
     final ApplicationInfo applicationInfo = injector.getInstance(ApplicationInfo.class);
 

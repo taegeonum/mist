@@ -15,13 +15,13 @@
  */
 package edu.snu.mist.core.task;
 
-import edu.snu.mist.core.task.merging.MergeAwareQueryRemover;
+import edu.snu.mist.core.task.merging.NoMergingAwareQueryRemover;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 
 /**
  * This removes the query from MIST.
  */
-@DefaultImplementation(MergeAwareQueryRemover.class)
+@DefaultImplementation(NoMergingAwareQueryRemover.class)
 public interface QueryRemover {
 
   /**
