@@ -17,7 +17,7 @@ package edu.snu.mist.core.task;
 
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.MISTEdge;
-import edu.snu.mist.core.task.merging.NoMergingQueryStarter;
+import edu.snu.mist.core.task.merging.ImmediateQueryMergingStarter;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.tang.exceptions.InjectionException;
 
@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * This interface represents a component that is responsible for starting and executing queries.
  */
-@DefaultImplementation(NoMergingQueryStarter.class)
+@DefaultImplementation(ImmediateQueryMergingStarter.class)
 public interface QueryStarter {
 
   /**
