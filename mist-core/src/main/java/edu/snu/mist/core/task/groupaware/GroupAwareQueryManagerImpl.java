@@ -35,6 +35,9 @@ import org.apache.reef.tang.exceptions.InjectionException;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -100,6 +103,9 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
    */
   private final AtomicLong applicationNum = new AtomicLong(0);
 
+  private final AtomicLong queryNum = new AtomicLong(0);
+
+  private MemoryUsage memUsage;
   /**
    * Default query manager in MistTask.
    */
@@ -124,8 +130,14 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     this.dagGenerator = dagGenerator;
     this.groupAllocationTableModifier = groupAllocationTableModifier;
     this.applicationMap = applicationMap;
+    this.memUsage = getHeapMemoryUse();
   }
 
+  private MemoryUsage getHeapMemoryUse() {
+    final MemoryMXBean memBean = ManagementFactory.getMemoryMXBean();
+    final MemoryUsage heapMemUsage = memBean.getHeapMemoryUsage();
+    return heapMemUsage;
+  }
   /**
    * Start a submitted query.
    * It converts the avro operator chain dag (query) to the execution dag,
@@ -165,6 +177,13 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
         Thread.sleep(100);
       }
       final Query query = createAndStartQuery(queryId, applicationInfo, configDag);
+
+      if (queryNum.incrementAndGet() % 10000 == 0) {
+        final MemoryUsage mem = getHeapMemoryUse();
+        System.out.println("## Current mem usage: " + mem.getUsed() + ", "
+            + (mem.getUsed() - memUsage.getUsed()) + (mem.getUsed() / mem.getMax()));
+        memUsage = mem;
+      }
 
       queryControlResult.setIsSuccess(true);
       queryControlResult.setMsg(ResultMessage.submitSuccess(tuple.getKey()));
