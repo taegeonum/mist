@@ -35,6 +35,9 @@ import org.apache.reef.tang.exceptions.InjectionException;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -132,6 +135,13 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     this.logger = logger;
   }
 
+
+  private MemoryUsage getHeapMemoryUse() {
+    final MemoryMXBean memBean = ManagementFactory.getMemoryMXBean();
+    final MemoryUsage heapMemUsage = memBean.getHeapMemoryUsage();
+    return heapMemUsage;
+  }
+
   /**
    * Start a submitted query.
    * It converts the avro operator chain dag (query) to the execution dag,
@@ -181,10 +191,10 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       logger.getEndToendQueryStartTime().addAndGet(System.nanoTime() - st);
       //System.out.println(String.format("!QS\t%d\t%d", (System.currentTimeMillis() - st), queryId));
 
-      int n = queryNum.incrementAndGet();
-      if (n % 10000 == 0) {
-        System.out.println("### " + n + " queries");
-        logger.print();
+      if (queryNum.incrementAndGet() % 10000 == 0) {
+        final MemoryUsage mem = getHeapMemoryUse();
+        System.out.println("## At " + queryNum + " queries Current mem usage: " + (mem.getUsed() / 1000000) + ", "
+            + ", " + (mem.getUsed() / (double)mem.getMax()));
       }
 
       return queryControlResult;
