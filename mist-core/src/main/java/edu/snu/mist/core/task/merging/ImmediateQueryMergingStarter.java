@@ -21,12 +21,12 @@ import edu.snu.mist.common.graph.GraphUtils;
 import edu.snu.mist.common.graph.MISTEdge;
 import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.codeshare.ClassLoaderProvider;
+import edu.snu.mist.core.task.groupaware.TestLogger;
 
 import javax.inject.Inject;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * This starter tries to merges the submitted dag with the currently running dag.
@@ -81,10 +81,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
    */
   private final ExecutionVertexDagMap executionVertexDagMap;
 
-  /**
-   * The list of jar file paths.
-   */
-  private final List<String> groupJarFilePaths;
+  private final TestLogger logger;
 
   @Inject
   private ImmediateQueryMergingStarter(final CommonSubDagFinder commonSubDagFinder,
@@ -95,7 +92,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
                                        final ExecutionVertexCountMap executionVertexCountMap,
                                        final ClassLoaderProvider classLoaderProvider,
                                        final ExecutionVertexGenerator executionVertexGenerator,
-                                       final ExecutionVertexDagMap executionVertexDagMap) {
+                                       final ExecutionVertexDagMap executionVertexDagMap,
+                                       final TestLogger logger) {
     this.commonSubDagFinder = commonSubDagFinder;
     this.srcAndDagMap = srcAndDagMap;
     this.queryIdConfigDagMap = queryIdConfigDagMap;
@@ -105,11 +103,11 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
     this.configExecutionVertexMap = configExecutionVertexMap;
     this.executionVertexCountMap = executionVertexCountMap;
     this.executionVertexDagMap = executionVertexDagMap;
-    this.groupJarFilePaths = new CopyOnWriteArrayList<>();
+    this.logger = logger;
   }
 
   @Override
-  public synchronized void start(final String queryId,
+  public void start(final String queryId,
                                  final Query query,
                                  final DAG<ConfigVertex, MISTEdge> submittedDag,
                                  final List<String> jarFilePaths)
@@ -120,12 +118,6 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
     final URL[] urls = SerializeUtils.getJarFileURLs(jarFilePaths);
     final ClassLoader classLoader = classLoaderProvider.newInstance(urls);
 
-    synchronized (groupJarFilePaths) {
-      if (jarFilePaths != null && jarFilePaths.size() != 0) {
-        groupJarFilePaths.addAll(jarFilePaths);
-      }
-    }
-
     // Synchronize the execution dags to evade concurrent modifications
     // TODO:[MIST-590] We need to improve this code for concurrent modification
     synchronized (srcAndDagMap) {
@@ -134,9 +126,14 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
 
       // Exit the merging process if there is no mergeable dag
       if (mergeableDags.size() == 0) {
+        //final long st = System.nanoTime();
         final ExecutionDag executionDag = generate(submittedDag, jarFilePaths);
         // Set up the output emitters of the submitted DAG
         QueryStarterUtils.setUpOutputEmitters(executionDag, query);
+
+        //logger.getExecutionDagGenerationTime().addAndGet(System.nanoTime() - st);
+
+        //final long st2 = System.nanoTime();
 
         for (final ExecutionVertex source : executionDag.getDag().getRootVertices()) {
           // Start the source
@@ -145,14 +142,20 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
           src.start();
         }
 
+        //logger.getSourceStartTime().addAndGet(System.nanoTime() - st2);
+
         // Update the execution dag of the execution vertex
         for (final ExecutionVertex ev : executionDag.getDag().getVertices()) {
           executionVertexDagMap.put(ev, executionDag);
         }
 
         executionDags.add(executionDag);
+        //logger.getQueryCreationTime().addAndGet(System.nanoTime() - st);
         return;
       }
+
+
+      final long st = System.nanoTime();
 
       // If there exist mergeable execution dags,
       // Select the DAG that has the largest number of vertices and merge all of the DAG to the largest DAG
@@ -211,6 +214,9 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
           ((PhysicalSource)configExecutionVertexMap.get(source)).start();
         }
       }
+
+      logger.getQueryMergingTime().getAndAdd(System.nanoTime() - st);
+      //System.out.println(String.format("!OB2\t%d\t%d", (System.currentTimeMillis() - st), queryId));
     }
   }
 
@@ -227,7 +233,11 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
                            final ClassLoader classLoader) throws IOException, ClassNotFoundException {
     final ExecutionVertex currExecutionVertex;
     if (created.get(currVertex) == null) {
+
+      final long st = System.nanoTime();
       currExecutionVertex = executionVertexGenerator.generate(currVertex, urls, classLoader);
+      logger.getObjectCreationTime().addAndGet(System.nanoTime() - st);
+
       created.put(currVertex, currExecutionVertex);
       executionVertexCountMap.put(currExecutionVertex, 1);
       executionVertexDagMap.put(currExecutionVertex, executionDag);
@@ -260,7 +270,11 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
 
     final Map<ConfigVertex, ExecutionVertex> created = new HashMap<>(configDag.numberOfVertices());
     for (final ConfigVertex source : configDag.getRootVertices()) {
+      final long st = System.nanoTime();
+
       final ExecutionVertex currExecutionVertex = executionVertexGenerator.generate(source, urls, classLoader);
+      logger.getObjectCreationTime().addAndGet(System.nanoTime() - st);
+
       created.put(source, currExecutionVertex);
       configExecutionVertexMap.put(source, currExecutionVertex);
       executionVertexCountMap.put(currExecutionVertex, 1);

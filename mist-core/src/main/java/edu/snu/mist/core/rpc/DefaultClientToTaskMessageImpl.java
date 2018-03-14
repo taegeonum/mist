@@ -17,6 +17,7 @@ package edu.snu.mist.core.rpc;
 
 import edu.snu.mist.core.task.QueryIdGenerator;
 import edu.snu.mist.core.task.QueryManager;
+import edu.snu.mist.core.task.groupaware.TestLogger;
 import edu.snu.mist.formats.avro.AvroDag;
 import edu.snu.mist.formats.avro.ClientToTaskMessage;
 import edu.snu.mist.formats.avro.QueryControlResult;
@@ -44,16 +45,23 @@ public final class DefaultClientToTaskMessageImpl implements ClientToTaskMessage
    */
   private final QueryIdGenerator queryIdGenerator;
 
+  private final TestLogger logger;
+
   @Inject
   private DefaultClientToTaskMessageImpl(final QueryIdGenerator queryIdGenerator,
-                                         final QueryManager queryManager) {
+                                         final QueryManager queryManager,
+                                         final TestLogger logger) {
     this.queryIdGenerator = queryIdGenerator;
     this.queryManager = queryManager;
+    this.logger = logger;
   }
 
   @Override
   public QueryControlResult sendQueries(final AvroDag avroDag) throws AvroRemoteException {
     final String queryId = queryIdGenerator.generate(avroDag);
+    //logger.setDeserializationTime();
+    //System.out.println(String.format("!DS\t%d\t%d", queryId, System.currentTimeMillis()));
+    //logger.getDeserializationTime().addAndGet(System.currentTimeMillis() - avroDag.getTime());
     return queryManager.create(new Tuple<>(queryId, avroDag));
   }
 
