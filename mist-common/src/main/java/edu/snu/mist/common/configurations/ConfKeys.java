@@ -21,23 +21,75 @@ public final class ConfKeys {
 
   }
 
-  public enum SourceConfKeys {
-    TIMESTAMP_EXTRACT_FUNC
+  public enum SourceConf {
+    TIMESTAMP_EXTRACT_FUNC,
+    SOURCE_TYPE
   }
 
-  public enum KafkaSourceConfKeys {
-    IS_KAFKA_SOURCE,
+  public enum KafkaSourceConf {
     KAFKA_TOPIC,
     KAFKA_CONSUMER_CONFIG
   }
 
-  public enum NettySourceConfKeys {
-    SOCKET_HOST_ADDR,
-    SOCKET_HOST_PORT
+  public enum NettySourceConf {
+    SOURCE_ADDR,
+    SOURCE_PORT
   }
 
-  public enum MQTTSourceConfKeys {
-    MQTT_BROKER_URI,
-    MQTT_TOPIC
+  public enum MQTTSourceConf {
+    MQTT_SRC_BROKER_URI,
+    MQTT_SRC_TOPIC
+  }
+
+  public enum OperatorConf {
+    OP_TYPE,
+    UDF_STRING,
+  }
+
+  public enum StateTransitionOperator {
+    INITIAL_STATE,
+    FINAL_STATE,
+    STATE_TABLE
+  }
+
+  public enum CepOperator {
+    CEP_EVENT,
+    WINDOW_TIME
+  }
+
+  public enum ReduceByKeyOperator {
+    KEY_INDEX,
+    MIST_BI_FUNC
+  }
+
+  public enum WindowOperator {
+    WINDOW_SIZE,
+    WINDOW_INTERVAL
+  }
+
+  public enum ConditionalBranchOperator {
+    UDF_LIST_STRING
+  }
+
+  public enum SinkConf {
+    SINK_TYPE,
+  }
+
+  public enum NettySink {
+    SINK_ADDRESS,
+    SINK_PORT,
+  }
+
+  public enum MqttSink {
+    MQTT_SINK_BROKER_URI,
+    MQTT_SINK_TOPIC,
+  }
+
+  public enum Watermark {
+    PERIODIC_WATERMARK_PERIOD,
+    PERIODIC_WATERMARK_DELAY,
+    EVENT_GENERATOR,
+    TIMESTAMP_PARSE_OBJECT,
+    WATERMARK_PREDICATE
   }
 }
