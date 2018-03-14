@@ -293,7 +293,7 @@ public class ContinuousStreamImpl<T> extends MISTStreamImpl<T> implements Contin
   public MISTStream<MqttMessage> mqttOutput(final String brokerURI, final String topic) {
 
     final Map<String, String> confMap = new HashMap<>();
-    confMap.put(ConfKeys.SinkConf.SINK_TYPE.name(), ConfValues.SinkType.NETTY.name());
+    confMap.put(ConfKeys.SinkConf.SINK_TYPE.name(), ConfValues.SinkType.MQTT.name());
     confMap.put(ConfKeys.MqttSink.MQTT_SINK_BROKER_URI.name(), brokerURI);
     confMap.put(ConfKeys.MqttSink.MQTT_SINK_TOPIC.name(), topic);
 
