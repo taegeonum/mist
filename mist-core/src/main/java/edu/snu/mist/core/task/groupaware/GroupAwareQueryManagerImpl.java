@@ -37,8 +37,12 @@ import org.apache.reef.tang.exceptions.InjectionException;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -107,6 +111,10 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
    */
   private final long checkpointPeriod;
 
+  private final AtomicInteger queryNum = new AtomicInteger(0);
+
+  private final TestLogger testLogger;
+
   /**
    * Default query manager in MistTask.
    */
@@ -121,7 +129,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
                                      final DagGenerator dagGenerator,
                                      final GroupAllocationTableModifier groupAllocationTableModifier,
                                      final ApplicationMap applicationMap,
-                                     @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod) {
+                                     @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod,
+                                     final TestLogger testLogger) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;
     this.eventProcessorManager = eventProcessorManager;
@@ -133,6 +142,13 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     this.groupAllocationTableModifier = groupAllocationTableModifier;
     this.applicationMap = applicationMap;
     this.checkpointPeriod = checkpointPeriod;
+    this.testLogger = testLogger;
+  }
+
+  private MemoryUsage getHeapMemoryUse() {
+    final MemoryMXBean memBean = ManagementFactory.getMemoryMXBean();
+    final MemoryUsage heapMemUsage = memBean.getHeapMemoryUsage();
+    return heapMemUsage;
   }
 
   /**
@@ -167,6 +183,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
         createApplication(appId, tuple.getValue().getJarPaths());
       }
 
+      final long st = System.nanoTime();
+
       final ApplicationInfo applicationInfo = applicationMap.get(appId);
       final DAG<ConfigVertex, MISTEdge> configDag = configDagGenerator.generate(tuple.getValue());
       // Waiting for group information being added
@@ -175,8 +193,19 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       }
       final Query query = createAndStartQuery(queryId, applicationInfo, configDag);
 
+      final long et = System.nanoTime();
+      testLogger.getEndToendQueryStartTime().addAndGet(et - st);
+
       queryControlResult.setIsSuccess(true);
       queryControlResult.setMsg(ResultMessage.submitSuccess(tuple.getKey()));
+
+      if (queryNum.incrementAndGet() % 10000 == 0) {
+        final MemoryUsage mem = getHeapMemoryUse();
+        System.out.println("## At " + queryNum + " queries Current mem usage: " + (mem.getUsed() / 1000000) + ", "
+            + ", " + (mem.getUsed() / (double)mem.getMax()));
+        testLogger.print();
+      }
+
       return queryControlResult;
     } catch (final Exception e) {
       e.printStackTrace();
@@ -218,6 +247,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     injector.bindVolatileInstance(KafkaSharedResource.class, kafkaSharedResource);
     injector.bindVolatileInstance(NettySharedResource.class, nettySharedResource);
     injector.bindVolatileInstance(QueryInfoStore.class, planStore);
+    injector.bindVolatileInstance(TestLogger.class, testLogger);
 
     final ApplicationInfo applicationInfo = injector.getInstance(ApplicationInfo.class);
 
