@@ -40,8 +40,9 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
@@ -115,6 +116,14 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
 
   private final TestLogger testLogger;
 
+  private final int expectedQueryNum = 500000;
+
+  private final List<Tuple<String, AvroDag>> queries = new ArrayList<>(expectedQueryNum + 10000);
+
+  private final ExecutorService executorService;
+
+  private final int numThread = 56;
+
   /**
    * Default query manager in MistTask.
    */
@@ -143,6 +152,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     this.applicationMap = applicationMap;
     this.checkpointPeriod = checkpointPeriod;
     this.testLogger = testLogger;
+    this.executorService = Executors.newFixedThreadPool(numThread);
   }
 
   private MemoryUsage getHeapMemoryUse() {
@@ -151,17 +161,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     return heapMemUsage;
   }
 
-  /**
-   * Start a submitted query.
-   * It converts the avro operator chain dag (query) to the execution dag,
-   * and executes the sources in order to receives data streams.
-   * Before the queries are executed, it stores the avro  dag into disk.
-   * We can regenerate the queries from the stored avro dag.
-   * @param tuple a pair of the query id and the avro dag
-   * @return submission result
-   */
-  @Override
-  public QueryControlResult create(final Tuple<String, AvroDag> tuple) {
+  private void createQuery(final Tuple<String, AvroDag> tuple) {
     final QueryControlResult queryControlResult = new QueryControlResult();
     queryControlResult.setQueryId(tuple.getKey());
     try {
@@ -199,14 +199,14 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       queryControlResult.setIsSuccess(true);
       queryControlResult.setMsg(ResultMessage.submitSuccess(tuple.getKey()));
 
-      if (queryNum.incrementAndGet() % 10000 == 0) {
-        final MemoryUsage mem = getHeapMemoryUse();
-        System.out.println("## At " + queryNum + " queries Current mem usage: " + (mem.getUsed() / 1000000) + ", "
-            + ", " + (mem.getUsed() / (double)mem.getMax()));
-        testLogger.print();
-      }
+//      if (queryNum.incrementAndGet() % 10000 == 0) {
+//        final MemoryUsage mem = getHeapMemoryUse();
+//        System.out.println("## At " + queryNum + " queries Current mem usage: " + (mem.getUsed() / 1000000) + ", "
+//            + ", " + (mem.getUsed() / (double)mem.getMax()));
+//        testLogger.print();
+//      }
 
-      return queryControlResult;
+      //return queryControlResult;
     } catch (final Exception e) {
       e.printStackTrace();
       // [MIST-345] We need to release all of the information that is required for the query when it fails.
@@ -215,8 +215,52 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
 
       queryControlResult.setIsSuccess(false);
       queryControlResult.setMsg(e.getMessage());
-      return queryControlResult;
+      //return queryControlResult;
     }
+  }
+
+  /**
+   * Start a submitted query.
+   * It converts the avro operator chain dag (query) to the execution dag,
+   * and executes the sources in order to receives data streams.
+   * Before the queries are executed, it stores the avro  dag into disk.
+   * We can regenerate the queries from the stored avro dag.
+   * @param tuple a pair of the query id and the avro dag
+   * @return submission result
+   */
+  @Override
+  public QueryControlResult create(final Tuple<String, AvroDag> tuple) {
+    queries.add(tuple);
+    if (queryNum.incrementAndGet() == expectedQueryNum) {
+
+      long st = System.currentTimeMillis();
+      final List<Future> futures = new ArrayList<>(numThread);
+      for (int i = 0; i < numThread; i++) {
+        final int partition = expectedQueryNum / numThread;
+        final int startIndex = partition * i;
+        final int endIndex = i + 1 == numThread ? expectedQueryNum : partition * (i + 1);
+
+        futures.add(executorService.submit(() -> {
+          for (int index = startIndex; index < endIndex; index++) {
+            createQuery(queries.get(index));
+          }
+        }));
+      }
+
+      for (final Future future : futures) {
+        try {
+          future.get();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (ExecutionException e) {
+          e.printStackTrace();
+        }
+      }
+
+      long et = System.currentTimeMillis();
+      System.out.println("Query construction time of " + expectedQueryNum + ": " + (et - st));
+    }
+    return null;
   }
 
   @Override
