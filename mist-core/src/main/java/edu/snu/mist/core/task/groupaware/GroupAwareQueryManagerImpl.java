@@ -116,7 +116,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
 
   private final TestLogger testLogger;
 
-  private final int expectedQueryNum = 500000;
+  private final int expectedQueryNum = 100000;
 
   private final List<Tuple<String, AvroDag>> queries = new ArrayList<>(expectedQueryNum + 10000);
 
