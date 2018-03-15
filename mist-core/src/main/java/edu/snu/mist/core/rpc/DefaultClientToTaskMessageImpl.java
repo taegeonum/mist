@@ -25,6 +25,7 @@ import org.apache.avro.AvroRemoteException;
 import org.apache.reef.io.Tuple;
 
 import javax.inject.Inject;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 /**
@@ -46,6 +47,8 @@ public final class DefaultClientToTaskMessageImpl implements ClientToTaskMessage
   private final QueryIdGenerator queryIdGenerator;
 
   private final TestLogger testLogger;
+
+  private final AtomicInteger qn = new AtomicInteger(0);
 
   @Inject
   private DefaultClientToTaskMessageImpl(final QueryIdGenerator queryIdGenerator,

@@ -233,7 +233,9 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     queries.add(tuple);
     if (queryNum.incrementAndGet() == expectedQueryNum) {
 
-      long st = System.currentTimeMillis();
+      System.out.println("Start to construction " + expectedQueryNum + " queries");
+
+      final long st = System.currentTimeMillis();
       final List<Future> futures = new ArrayList<>(numThread);
       for (int i = 0; i < numThread; i++) {
         final int partition = expectedQueryNum / numThread;
@@ -247,18 +249,22 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
         }));
       }
 
-      for (final Future future : futures) {
-        try {
-          future.get();
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        } catch (ExecutionException e) {
-          e.printStackTrace();
-        }
-      }
+      final ExecutorService waitThread = Executors.newSingleThreadExecutor();
+      waitThread.submit(() -> {
 
-      long et = System.currentTimeMillis();
-      System.out.println("Query construction time of " + expectedQueryNum + ": " + (et - st));
+        for (final Future future : futures) {
+          try {
+            future.get();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          } catch (ExecutionException e) {
+            e.printStackTrace();
+          }
+        }
+
+        long et = System.currentTimeMillis();
+        System.out.println("Query construction time of " + expectedQueryNum + ": " + (et - st));
+      });
     }
     return null;
   }
