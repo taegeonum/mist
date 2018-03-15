@@ -231,7 +231,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
   @Override
   public QueryControlResult create(final Tuple<String, AvroDag> tuple) {
     queries.add(tuple);
-    if (queryNum.incrementAndGet() == expectedQueryNum) {
+    final int num = queryNum.incrementAndGet();
+    if (num == expectedQueryNum) {
 
       System.out.println("Start to construction " + expectedQueryNum + " queries");
 
@@ -265,6 +266,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
         long et = System.currentTimeMillis();
         System.out.println("Query construction time of " + expectedQueryNum + ": " + (et - st));
       });
+    } else {
+      System.out.println("# query: " + num);
     }
     return null;
   }
