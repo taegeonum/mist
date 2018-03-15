@@ -22,7 +22,6 @@ import edu.snu.mist.formats.avro.AvroDag;
 import edu.snu.mist.formats.avro.ClientToTaskMessage;
 import edu.snu.mist.formats.avro.QueryControlResult;
 import org.apache.avro.AvroRemoteException;
-import org.apache.reef.io.Tuple;
 
 import javax.inject.Inject;
 import java.util.logging.Logger;
@@ -59,10 +58,13 @@ public final class DefaultClientToTaskMessageImpl implements ClientToTaskMessage
   @Override
   public QueryControlResult sendQueries(final AvroDag avroDag) throws AvroRemoteException {
     final String queryId = queryIdGenerator.generate(avroDag);
-
     testLogger.getDeserializationTime().addAndGet(System.currentTimeMillis() - avroDag.getTime());
-
-    return queryManager.create(new Tuple<>(queryId, avroDag));
+    return QueryControlResult.newBuilder()
+        .setIsSuccess(true)
+        .setMsg("msg")
+        .setQueryId(queryId)
+        .build();
+    //return queryManager.create(new Tuple<>(queryId, avroDag));
   }
 
   @Override
