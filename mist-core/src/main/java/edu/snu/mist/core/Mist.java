@@ -22,6 +22,7 @@ import edu.snu.mist.core.driver.MistTaskConfigs;
 import edu.snu.mist.core.parameters.DriverRuntimeType;
 import org.apache.reef.client.LauncherStatus;
 import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.JavaConfigurationBuilder;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.formats.CommandLine;
@@ -61,10 +62,27 @@ public final class Mist {
     if (commandLineConf == null) {
       return;
     }
-    final LauncherStatus status = MistLauncher
-        .getLauncherFromConf(commandLineConf)
-        .runFromConf(commandLineConf);
-    LOG.log(Level.INFO, "Mist completed: {0}", status);
+    final Injector injector = Tang.Factory.getTang().newInjector(commandLineConf);
+    final String runtimeType = injector.getNamedInstance(DriverRuntimeType.class);
+
+    final MistLauncher.RuntimeType rt = MistLauncher.RuntimeType.valueOf(runtimeType);
+
+    switch (rt) {
+      case LOCAL:
+        final String jobId = MistLauncher
+            .getLauncherFromConf(commandLineConf)
+            .submit(commandLineConf, 5000);
+        LOG.log(Level.INFO, "Mist submitted with id: {0}", jobId);
+        break;
+      case YARN:
+        final LauncherStatus status = MistLauncher
+            .getLauncherFromConf(commandLineConf)
+            .runFromConf(commandLineConf);
+        LOG.log(Level.INFO, "Mist completed: {0}", status);
+        break;
+      default:
+        throw new IllegalArgumentException(runtimeType + " Runtime Type is not supported yet.");
+    }
   }
 
   /**

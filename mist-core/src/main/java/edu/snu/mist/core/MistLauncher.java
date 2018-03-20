@@ -36,7 +36,6 @@ import org.apache.reef.util.EnvironmentUtils;
 import org.apache.reef.wake.IdentifierFactory;
 
 import javax.inject.Inject;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -181,8 +180,18 @@ public final class MistLauncher {
     final Configuration mistDriverConf = getDriverConfiguration(driverConf);
     final LauncherStatus status = timeOut == 0 ? launcher.run(mistDriverConf) : launcher.run(mistDriverConf, timeOut);
 
-    LOG.log(Level.INFO, "Mist completed: {0}", status);
 
     return status;
+  }
+
+  /**
+   * Submit MIST asynchronously.
+   * @param driverConf driver configuration
+   * @param timeout timeout
+   */
+  public String submit(final Configuration driverConf, final long timeout) throws InjectionException {
+    final DriverLauncher launcher = DriverLauncher.getLauncher(mistRuntimeConf);
+    final Configuration mistDriverConf = getDriverConfiguration(driverConf);
+    return launcher.submit(mistDriverConf, timeout);
   }
 }
