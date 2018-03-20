@@ -41,7 +41,7 @@ import java.util.logging.Logger;
 /**
  * The Launcher for MistDriver.
  */
-public final class MistLauncher {
+public final class MistLauncher implements AutoCloseable {
   private static final Logger LOG = Logger.getLogger(MistLauncher.class.getName());
 
   /**
@@ -61,6 +61,8 @@ public final class MistLauncher {
    * Timeout for the driver.
    */
   private int timeOut = 0;
+
+  private DriverLauncher driverLauncher;
 
   @Inject
   private MistLauncher(@Parameter(DriverRuntimeType.class) final String runtimeType) {
@@ -176,9 +178,10 @@ public final class MistLauncher {
    * @throws InjectionException on configuration errors
    */
   public LauncherStatus runFromConf(final Configuration driverConf) throws InjectionException {
-    final DriverLauncher launcher = DriverLauncher.getLauncher(mistRuntimeConf);
+    driverLauncher = DriverLauncher.getLauncher(mistRuntimeConf);
     final Configuration mistDriverConf = getDriverConfiguration(driverConf);
-    final LauncherStatus status = timeOut == 0 ? launcher.run(mistDriverConf) : launcher.run(mistDriverConf, timeOut);
+    final LauncherStatus status = timeOut == 0 ? driverLauncher.run(mistDriverConf) :
+        driverLauncher.run(mistDriverConf, timeOut);
 
 
     return status;
@@ -190,8 +193,13 @@ public final class MistLauncher {
    * @param timeout timeout
    */
   public String submit(final Configuration driverConf, final long timeout) throws InjectionException {
-    final DriverLauncher launcher = DriverLauncher.getLauncher(mistRuntimeConf);
+    driverLauncher = DriverLauncher.getLauncher(mistRuntimeConf);
     final Configuration mistDriverConf = getDriverConfiguration(driverConf);
-    return launcher.submit(mistDriverConf, timeout);
+    return driverLauncher.submit(mistDriverConf, timeout);
+  }
+
+  @Override
+  public void close() throws Exception {
+    driverLauncher.close();
   }
 }

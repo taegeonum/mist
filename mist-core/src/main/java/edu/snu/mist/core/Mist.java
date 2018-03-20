@@ -69,10 +69,10 @@ public final class Mist {
 
     switch (rt) {
       case LOCAL:
-        final String jobId = MistLauncher
-            .getLauncherFromConf(commandLineConf)
-            .submit(commandLineConf, 5000);
-        LOG.log(Level.INFO, "Mist submitted with id: {0}", jobId);
+        final MistLauncher launcher = MistLauncher.getLauncherFromConf(commandLineConf);
+        launcher.submit(commandLineConf, 5000);
+        launcher.close();
+        LOG.log(Level.INFO, "Mist submitted");
         break;
       case YARN:
         final LauncherStatus status = MistLauncher
