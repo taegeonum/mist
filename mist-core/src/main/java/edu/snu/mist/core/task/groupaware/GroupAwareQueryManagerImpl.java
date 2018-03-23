@@ -105,7 +105,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
   /**
    * TODO: This should be generate globally unique numbers.
    */
-  private final AtomicLong applicationNum = new AtomicLong(0);
+  private final AtomicLong queryNum = new AtomicLong(0);
 
   /**
    * The checkpoint period.
@@ -184,6 +184,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
 
       queryControlResult.setIsSuccess(true);
       queryControlResult.setMsg(ResultMessage.submitSuccess(tuple.getKey()));
+
+      System.out.println("query: " + queryNum.incrementAndGet());
       return queryControlResult;
     } catch (final Exception e) {
       e.printStackTrace();
