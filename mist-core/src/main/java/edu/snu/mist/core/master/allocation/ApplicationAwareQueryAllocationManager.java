@@ -103,7 +103,7 @@ public final class ApplicationAwareQueryAllocationManager extends AbstractQueryA
     }
 
     if (minLoadTask == null) {
-      throw new RuntimeException("MinLoadTask is null!");
+      throw new RuntimeException("MinLoadTask is null! " + taskInfoMap.size());
     }
     return minLoadTask;
   }

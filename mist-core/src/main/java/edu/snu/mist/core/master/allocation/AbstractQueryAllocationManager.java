@@ -20,11 +20,13 @@ import edu.snu.mist.formats.avro.IPAddress;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Logger;
 
 /**
  * The abstract class which supports common functionalities of QAMs.
  */
 public abstract class AbstractQueryAllocationManager implements QueryAllocationManager {
+  private static final Logger LOG = Logger.getLogger(AbstractQueryAllocationManager.class.getName());
 
   /**
    * The map which contains task info for each task.
@@ -42,6 +44,7 @@ public abstract class AbstractQueryAllocationManager implements QueryAllocationM
 
   @Override
   public TaskInfo addTaskInfo(final IPAddress taskAddress, final TaskInfo taskInfo) {
+    LOG.info("Add task info: " + taskAddress.getHostAddress() + ":" + taskAddress.getPort());
     return taskInfoMap.putIfAbsent(taskAddress, taskInfo);
   }
 }
