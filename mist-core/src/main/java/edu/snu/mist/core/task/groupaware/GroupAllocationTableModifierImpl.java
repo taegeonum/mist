@@ -163,6 +163,8 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               applicationInfo.addGroup(group);
               groupAssigner.assignGroup(group);
               groupMap.putIfAbsent(group.getGroupId(), group);
+              LOG.log(Level.INFO, "Group {0} for app {1} is added",
+                  new Object[] {applicationInfo.getApplicationId(), group.getGroupId()});
               break;
             }
             case QUERY_ADD: {
@@ -177,15 +179,22 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
 
               query.setGroup(minGroup);
               minGroup.addQuery(query);
+
+              LOG.log(Level.INFO, "Query {0} of app {1} is added to group {1}",
+                  new Object[] {query.getId(), applicationInfo.getApplicationId(), minGroup.getGroupId()});
               break;
             }
             case GROUP_REMOVE: {
               final Group group = (Group) event.getValue();
               removeGroupInWriterThread(group);
               groupMap.remove(group.getGroupId());
+
+              LOG.log(Level.INFO, "Group {0} of app {1} is removed",
+                  new Object[]{group.getGroupId(), group.getApplicationInfo().getApplicationId()});
               break;
             }
             case GROUP_REMOVE_ALL: {
+              LOG.log(Level.INFO, "Group remove all called");
               removeAllGroupsInWriterThread();
               break;
             }
