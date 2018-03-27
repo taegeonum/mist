@@ -180,8 +180,9 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               query.setGroup(minGroup);
               minGroup.addQuery(query);
 
-              LOG.log(Level.INFO, "Query {0} of app {1} is added to group {1}",
-                  new Object[] {query.getId(), applicationInfo.getApplicationId(), minGroup.getGroupId()});
+              LOG.log(Level.INFO, "Query {0} of app {1} is added to group {1}:{2}",
+                  new Object[] {query.getId(), applicationInfo.getApplicationId(), minGroup.getGroupId(),
+                  applicationInfo.getJarFilePath().get(0)});
               break;
             }
             case GROUP_REMOVE: {

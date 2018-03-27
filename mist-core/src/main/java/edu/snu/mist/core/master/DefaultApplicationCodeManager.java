@@ -109,6 +109,7 @@ public final class DefaultApplicationCodeManager implements ApplicationCodeManag
       final List<String> jarPaths = saveJar(jarFiles, appId);
       // App ID is always unique, so putIfAbsent() isn't necessary.
       appJarMap.put(appId, jarPaths);
+      LOG.log(Level.INFO, "App {0} is stored in path {1}", new Object[] {appId, jarPaths.get(0)});
       return JarUploadResult.newBuilder()
           .setIdentifier(appId)
           .setIsSuccess(true)
