@@ -155,6 +155,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
   public QueryControlResult create(final Tuple<String, AvroDag> tuple) {
     final QueryControlResult queryControlResult = new QueryControlResult();
     queryControlResult.setQueryId(tuple.getKey());
+    LOG.log(Level.INFO, "hello world!");
+    
     try {
       // Create the submitted query
       // 1) Saves the avr dag to the PlanStore and
