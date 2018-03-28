@@ -28,13 +28,13 @@ public final class PhysicalSinkImpl<I> extends BasePhysicalVertex implements Phy
 
   private final Sink<I> sink;
 
-  private static final AtomicInteger sinkCounter = new AtomicInteger(0);
+  private static final AtomicInteger SINK_COUNTER = new AtomicInteger(0);
 
   public PhysicalSinkImpl(final String sinkId,
                           final Map<String, String> configuration,
                           final Sink<I> sink) {
     super(sinkId, configuration);
-    System.out.println("Sink counter: " + sinkCounter.incrementAndGet() + ", topic: "
+    System.out.println("Sink counter: " + SINK_COUNTER.incrementAndGet() + ", topic: "
         + configuration.get(ConfKeys.MqttSink.MQTT_SINK_TOPIC));
     this.sink = sink;
   }

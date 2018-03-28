@@ -32,7 +32,7 @@ import java.util.logging.Level;
 public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements PhysicalSource {
   private static final Logger LOG = Logger.getLogger(PhysicalSourceImpl.class.getName());
 
-  private static final AtomicInteger sourceCount = new AtomicInteger(0);
+  private static final AtomicInteger SOURCE_COUNTER = new AtomicInteger(0);
 
   /**
    * Data generator that generates data.
@@ -57,7 +57,7 @@ public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements P
   @Override
   public void start() {
     if (started.compareAndSet(false, true)) {
-      System.out.println("Source counter: " + sourceCount.incrementAndGet());
+      System.out.println("Source counter: " + SOURCE_COUNTER.incrementAndGet());
 
       if (dataGenerator != null && eventGenerator != null) {
         dataGenerator.setEventGenerator(eventGenerator);
