@@ -20,12 +20,19 @@ import edu.snu.mist.core.sources.DataGenerator;
 import edu.snu.mist.core.sources.EventGenerator;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * This class represents the implementation of Source interface.
  * @param <T> the type of input data
  */
 public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements PhysicalSource {
+  private static final Logger LOG = Logger.getLogger(PhysicalSourceImpl.class.getName());
+
+  private static final AtomicInteger sourceCount = new AtomicInteger(0);
 
   /**
    * Data generator that generates data.
@@ -37,6 +44,8 @@ public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements P
    */
   private final EventGenerator<T> eventGenerator;
 
+  private final AtomicBoolean started = new AtomicBoolean(false);
+
   public PhysicalSourceImpl(final String sourceId,
                             final Map<String, String> configuration,
                             final DataGenerator<T> dataGenerator, final EventGenerator<T> eventGenerator) {
@@ -47,13 +56,19 @@ public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements P
 
   @Override
   public void start() {
-    if (dataGenerator != null && eventGenerator != null) {
-      dataGenerator.setEventGenerator(eventGenerator);
-      eventGenerator.start();
-      dataGenerator.start();
+    if (started.compareAndSet(false, true)) {
+      System.out.println("Source counter: " + sourceCount.incrementAndGet());
+
+      if (dataGenerator != null && eventGenerator != null) {
+        dataGenerator.setEventGenerator(eventGenerator);
+        eventGenerator.start();
+        dataGenerator.start();
+      } else {
+        throw new RuntimeException("DataGenerator and EventGenerator should be set in " +
+            PhysicalSourceImpl.class.getName());
+      }
     } else {
-      throw new RuntimeException("DataGenerator and EventGenerator should be set in " +
-          PhysicalSourceImpl.class.getName());
+      LOG.log(Level.SEVERE, "Source is already started");
     }
   }
 
