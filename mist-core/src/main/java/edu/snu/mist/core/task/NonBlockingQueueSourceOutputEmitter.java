@@ -80,9 +80,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
         final long et = System.currentTimeMillis();
         final long cnt = DATA_COUNTER.get();
         DATA_COUNTER.addAndGet(-cnt);
-
-        System.out.println("Source processing rate: " + (cnt * 1000 / (et - PREV_STARTTIME.get())) + " at " + et);
-        PREV_STARTTIME.set(et);
+        System.out.println("Processing rate: " + (cnt * 1000) + " at " + et);
       }, 1000, 1000, TimeUnit.MILLISECONDS);
     }
   }
