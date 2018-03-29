@@ -30,6 +30,7 @@ import org.apache.reef.tang.annotations.Parameter;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -141,7 +142,7 @@ final class DefaultGroupImpl implements Group {
     final int n = numActiveSubGroup.getAndIncrement();
     //System.out.println("Event is added at Group, # group: " + n);
 
-    if (n == 0) {
+    if (n <= 0) {
       eventProcessor.get().addActiveGroup(this);
     }
   }
@@ -219,7 +220,7 @@ final class DefaultGroupImpl implements Group {
   }
 
   private long elapsedTime(final long startTime) {
-    return System.nanoTime() - startTime;
+    return TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime);
   }
 
   @Override

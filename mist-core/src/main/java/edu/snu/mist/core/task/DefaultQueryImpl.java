@@ -93,7 +93,7 @@ public final class DefaultQueryImpl implements Query {
   public void insert(final SourceOutputEmitter sourceOutputEmitter) {
     activeSourceQueue.add(sourceOutputEmitter);
     final int n = numActiveSources.getAndIncrement();
-    if (n == 0) {
+    if (n <= 0) {
       group.insert(this);
     }
   }
