@@ -80,7 +80,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
         final long et = System.currentTimeMillis();
         final long cnt = DATA_COUNTER.get();
         DATA_COUNTER.addAndGet(-cnt);
-        System.out.println("Processing rate: " + (cnt * 1000) + " at " + et);
+        System.out.println("Processing rate: " + cnt + " at " + et);
       }, 1000, 1000, TimeUnit.MILLISECONDS);
     }
   }
@@ -91,6 +91,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
     MistEvent event = queue.poll();
     while (event != null) {
       numEvents.decrementAndGet();
+      DATA_COUNTER.incrementAndGet();
 
       for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
         process(event, entry.getValue().getDirection(), (PhysicalOperator) entry.getKey());
@@ -111,7 +112,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
         } else {
           operator.getOperator().processRightData((MistDataEvent) event);
         }
-        DATA_COUNTER.incrementAndGet();
         operator.setLatestDataTimestamp(event.getTimestamp());
       } else if (event.isCheckpoint()) {
         if (direction == Direction.LEFT) {
