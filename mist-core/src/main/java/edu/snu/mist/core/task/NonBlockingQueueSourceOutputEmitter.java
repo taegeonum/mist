@@ -58,14 +58,14 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
    */
   private final Query query;
 
-  private static final AtomicLong dataCounter = new AtomicLong(0);
+  private static final AtomicLong DATA_COUNTER = new AtomicLong(0);
 
-  private static final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+  private static final ScheduledExecutorService ES = Executors.newSingleThreadScheduledExecutor();
 
 
-  private static final AtomicBoolean esStarted = new AtomicBoolean(false);
+  private static final AtomicBoolean ES_STARTED = new AtomicBoolean(false);
 
-  private static final AtomicLong prevStartTime = new AtomicLong(0);
+  private static final AtomicLong PREV_STARTTIME = new AtomicLong(0);
 
   public NonBlockingQueueSourceOutputEmitter(final Map<ExecutionVertex, MISTEdge> nextOperators,
                                              final Query query) {
@@ -74,15 +74,15 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
     this.query = query;
     this.numEvents = new AtomicInteger();
 
-    if (esStarted.compareAndSet(false, true)) {
-      prevStartTime.set(System.currentTimeMillis());
-      es.scheduleAtFixedRate(() -> {
+    if (ES_STARTED.compareAndSet(false, true)) {
+      PREV_STARTTIME.set(System.currentTimeMillis());
+      ES.scheduleAtFixedRate(() -> {
         final long et = System.currentTimeMillis();
-        final long cnt = dataCounter.get();
-        dataCounter.addAndGet(-cnt);
+        final long cnt = DATA_COUNTER.get();
+        DATA_COUNTER.addAndGet(-cnt);
 
-        System.out.println("Source rate: " + (cnt / (et - prevStartTime.get())));
-        prevStartTime.set(et);
+        System.out.println("Source rate: " + (cnt / (et - PREV_STARTTIME.get())));
+        PREV_STARTTIME.set(et);
       }, 1000, 1000, TimeUnit.MILLISECONDS);
     }
   }
@@ -153,7 +153,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       if (n == 0) {
         query.insert(this);
       }
-      dataCounter.incrementAndGet();
+      DATA_COUNTER.incrementAndGet();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
@@ -170,7 +170,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       if (n == 0) {
         query.insert(this);
       }
-      dataCounter.incrementAndGet();
+      DATA_COUNTER.incrementAndGet();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
