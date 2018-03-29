@@ -25,7 +25,12 @@ import edu.snu.mist.formats.avro.Direction;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This emitter enqueues events to the source event queue.
@@ -53,6 +58,14 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
    */
   private final Query query;
 
+  private static final AtomicLong dataCounter = new AtomicLong(0);
+
+  private static final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+
+
+  private static final AtomicBoolean esStarted = new AtomicBoolean(false);
+
+  private static final AtomicLong prevStartTime = new AtomicLong(0);
 
   public NonBlockingQueueSourceOutputEmitter(final Map<ExecutionVertex, MISTEdge> nextOperators,
                                              final Query query) {
@@ -60,6 +73,18 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
     this.nextOperators = nextOperators;
     this.query = query;
     this.numEvents = new AtomicInteger();
+
+    if (esStarted.compareAndSet(false, true)) {
+      prevStartTime.set(System.currentTimeMillis());
+      es.scheduleAtFixedRate(() -> {
+        final long et = System.currentTimeMillis();
+        final long cnt = dataCounter.get();
+        dataCounter.addAndGet(-cnt);
+
+        System.out.println("Source rate: " + (cnt / (et - prevStartTime.get())));
+        prevStartTime.set(et);
+      }, 1000, 1000, TimeUnit.MILLISECONDS);
+    }
   }
 
   @Override

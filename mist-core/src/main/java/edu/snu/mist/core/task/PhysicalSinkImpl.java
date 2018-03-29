@@ -35,7 +35,7 @@ public final class PhysicalSinkImpl<I> extends BasePhysicalVertex implements Phy
                           final Sink<I> sink) {
     super(sinkId, configuration);
     System.out.println("Sink counter: " + SINK_COUNTER.incrementAndGet() + ", topic: "
-        + configuration.get(ConfKeys.MqttSink.MQTT_SINK_TOPIC));
+        + configuration.get(ConfKeys.MqttSink.MQTT_SINK_TOPIC.name()));
     this.sink = sink;
   }
 

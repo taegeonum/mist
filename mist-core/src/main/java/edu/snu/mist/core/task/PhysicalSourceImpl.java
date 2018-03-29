@@ -15,6 +15,7 @@
  */
 package edu.snu.mist.core.task;
 
+import edu.snu.mist.common.configurations.ConfKeys;
 import edu.snu.mist.core.OutputEmitter;
 import edu.snu.mist.core.sources.DataGenerator;
 import edu.snu.mist.core.sources.EventGenerator;
@@ -57,7 +58,8 @@ public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements P
   @Override
   public void start() {
     if (started.compareAndSet(false, true)) {
-      System.out.println("Source counter: " + SOURCE_COUNTER.incrementAndGet());
+      System.out.println("Source counter: " + SOURCE_COUNTER.incrementAndGet() + ", " +
+          configuration.get(ConfKeys.MQTTSourceConf.MQTT_SRC_TOPIC.name()));
 
       if (dataGenerator != null && eventGenerator != null) {
         dataGenerator.setEventGenerator(eventGenerator);
