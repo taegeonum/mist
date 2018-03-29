@@ -81,7 +81,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
         final long cnt = DATA_COUNTER.get();
         DATA_COUNTER.addAndGet(-cnt);
 
-        System.out.println("Source rate: " + (cnt / (et - PREV_STARTTIME.get())));
+        System.out.println("Source processing rate: " + (cnt * 1000 / (et - PREV_STARTTIME.get())) + " at " + et);
         PREV_STARTTIME.set(et);
       }, 1000, 1000, TimeUnit.MILLISECONDS);
     }
@@ -95,7 +95,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       numEvents.decrementAndGet();
 
       for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
-        process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
+        process(event, entry.getValue().getDirection(), (PhysicalOperator) entry.getKey());
       }
       numProcessedEvent += 1;
       event = queue.poll();
@@ -113,6 +113,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
         } else {
           operator.getOperator().processRightData((MistDataEvent) event);
         }
+        DATA_COUNTER.incrementAndGet();
         operator.setLatestDataTimestamp(event.getTimestamp());
       } else if (event.isCheckpoint()) {
         if (direction == Direction.LEFT) {
@@ -153,7 +154,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       if (n == 0) {
         query.insert(this);
       }
-      DATA_COUNTER.incrementAndGet();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
@@ -170,7 +170,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       if (n == 0) {
         query.insert(this);
       }
-      DATA_COUNTER.incrementAndGet();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
