@@ -39,6 +39,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -110,6 +111,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
    * The checkpoint period.
    */
   private final long checkpointPeriod;
+
+  private final AtomicInteger numQueries = new AtomicInteger(0);
 
   /**
    * Default query manager in MistTask.
@@ -186,6 +189,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
 
       queryControlResult.setIsSuccess(true);
       queryControlResult.setMsg(ResultMessage.submitSuccess(queryId));
+      System.out.println("# queries: " + numQueries.incrementAndGet());
       return queryControlResult;
     } catch (final Exception e) {
       e.printStackTrace();
