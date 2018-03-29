@@ -153,6 +153,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       if (n == 0) {
         query.insert(this);
       }
+      dataCounter.incrementAndGet();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
@@ -169,6 +170,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       if (n == 0) {
         query.insert(this);
       }
+      dataCounter.incrementAndGet();
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
