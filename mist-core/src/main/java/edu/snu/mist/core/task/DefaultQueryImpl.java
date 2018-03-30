@@ -68,6 +68,8 @@ public final class DefaultQueryImpl implements Query {
    */
   private final AtomicLong totalProcessingEvent = new AtomicLong(0);
 
+  private long latestProcessingTime;
+
   /**
    * Query status.
    */
@@ -79,6 +81,12 @@ public final class DefaultQueryImpl implements Query {
     this.activeSourceQueue = new ConcurrentLinkedQueue<>();
     this.queryLoad = 0;
     this.numActiveSources = new AtomicInteger();
+    this.latestProcessingTime = System.currentTimeMillis();
+  }
+
+  @Override
+  public long getLatestProcessingTime() {
+    return latestProcessingTime;
   }
 
   @Override
@@ -122,6 +130,7 @@ public final class DefaultQueryImpl implements Query {
       numProcessedEvent += sourceOutputEmitter.processAllEvent();
       sourceOutputEmitter = activeSourceQueue.poll();
     }
+    latestProcessingTime = System.currentTimeMillis();
     return numProcessedEvent;
   }
 

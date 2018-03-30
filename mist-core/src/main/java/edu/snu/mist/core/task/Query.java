@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @DefaultImplementation(DefaultQueryImpl.class)
 public interface Query {
 
+  long getLatestProcessingTime();
+
   /**
    * Set the group of the query.
    * This can change when performing group splitting.

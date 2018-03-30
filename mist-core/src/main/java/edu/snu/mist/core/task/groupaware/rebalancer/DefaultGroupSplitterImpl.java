@@ -132,9 +132,10 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
     LOG.info(sb.toString());
   }
 
-  private Group hasSameGroup(final Group group, final EventProcessor eventProcessor) {
+  private Group hasGroupFromSameApp(final Group group, final EventProcessor eventProcessor) {
     for (final Group g : groupAllocationTable.getValue(eventProcessor)) {
-      if (g.getGroupId().equals(group.getGroupId())) {
+      if (g.getApplicationInfo().getApplicationId().equals(
+          group.getApplicationInfo().getApplicationId())) {
         return g;
       }
     }
@@ -235,7 +236,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               });
 
               final EventProcessor lowLoadThread = underloadedThreads.poll();
-              Group sameGroup = hasSameGroup(highLoadGroup, lowLoadThread);
+              Group sameGroup = hasGroupFromSameApp(highLoadGroup, lowLoadThread);
 
               if (sameGroup == null) {
                 // Split! Create a new group!
@@ -243,6 +244,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 jcb.bindNamedParameter(GroupId.class, groupIdRequestor.requestGroupId(highLoadGroup
                     .getApplicationInfo().getApplicationId()));
                 final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
+
                 sameGroup = injector.getInstance(Group.class);
                 sameGroup.setEventProcessor(lowLoadThread);
                 highLoadGroup.getApplicationInfo().addGroup(sameGroup);
