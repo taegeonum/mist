@@ -207,7 +207,7 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               loadUpdater.update();
               //isolatedGroupReassigner.reassignIsolatedGroups();
 
-              /*
+
               // 1. merging first
               groupMerger.groupMerging();
 
@@ -216,7 +216,6 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
 
               // 3. split groups
               groupSplitter.splitGroup();
-              */
 
               // 4. update the task stats to master
               taskStatsUpdater.updateTaskStatsToMaster(groupAllocationTable);
