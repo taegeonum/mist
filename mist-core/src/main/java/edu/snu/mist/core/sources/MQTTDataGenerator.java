@@ -75,12 +75,20 @@ public final class MQTTDataGenerator implements DataGenerator<MqttMessage> {
   @Override
   public void start() {
     if (started.compareAndSet(false, true)) {
-      try {
-        subClient.subscribe(topic);
-      } catch (final MqttException e) {
-        LOG.log(Level.SEVERE, "{0} failed to subscribe topic {1}",
-            new Object[]{this.getClass().getName(), topic});
-        this.close();
+      while (true) {
+        try {
+          subClient.subscribe(topic);
+          break;
+        } catch (final MqttException e) {
+          LOG.log(Level.SEVERE, "{0} failed to subscribe topic {1} ... Retry connection",
+              new Object[]{this.getClass().getName(), topic});
+          // Retry connection
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e1) {
+            e1.printStackTrace();
+          }
+        }
       }
     }
   }

@@ -203,8 +203,6 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               // TODO
               break;
             case REBALANCE:
-              // check unprocessed queries
-              checkUnprocessedQueries();
               
               loadUpdater.update();
               //isolatedGroupReassigner.reassignIsolatedGroups();
@@ -234,20 +232,6 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
         } catch (final Exception e) {
           e.printStackTrace();
           throw new RuntimeException(e);
-        }
-      }
-    }
-  }
-
-  private void checkUnprocessedQueries() {
-    for (final EventProcessor eventProcessor : groupAllocationTable.getKeys()) {
-      final Collection<Group> groups = groupAllocationTable.getValue(eventProcessor);
-      for (final Group group : groups) {
-        for (final Query q : group.getQueries()) {
-          if (System.currentTimeMillis() - q.getLatestProcessingTime() >= 10000) {
-            System.out.println("G " + group.getApplicationInfo().getApplicationId() +
-                " query not processed: " + q.numberOfRemainingEvents());
-          }
         }
       }
     }
