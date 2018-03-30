@@ -15,16 +15,14 @@
  */
 package edu.snu.mist.core.task;
 
-import edu.snu.mist.common.configurations.ConfKeys;
 import edu.snu.mist.core.OutputEmitter;
 import edu.snu.mist.core.sources.DataGenerator;
 import edu.snu.mist.core.sources.EventGenerator;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class represents the implementation of Source interface.
@@ -32,8 +30,6 @@ import java.util.logging.Level;
  */
 public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements PhysicalSource {
   private static final Logger LOG = Logger.getLogger(PhysicalSourceImpl.class.getName());
-
-  private static final AtomicInteger SOURCE_COUNTER = new AtomicInteger(0);
 
   /**
    * Data generator that generates data.
@@ -58,8 +54,6 @@ public final class PhysicalSourceImpl<T> extends BasePhysicalVertex implements P
   @Override
   public void start() {
     if (started.compareAndSet(false, true)) {
-      System.out.println("Source counter: " + SOURCE_COUNTER.incrementAndGet() + ", " +
-          configuration.get(ConfKeys.MQTTSourceConf.MQTT_SRC_TOPIC.name()));
 
       if (dataGenerator != null && eventGenerator != null) {
         dataGenerator.setEventGenerator(eventGenerator);

@@ -15,11 +15,9 @@
  */
 package edu.snu.mist.core.task;
 
-import edu.snu.mist.common.configurations.ConfKeys;
 import edu.snu.mist.core.sinks.Sink;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This is an implementation of PhysicalSink.
@@ -28,14 +26,10 @@ public final class PhysicalSinkImpl<I> extends BasePhysicalVertex implements Phy
 
   private final Sink<I> sink;
 
-  private static final AtomicInteger SINK_COUNTER = new AtomicInteger(0);
-
   public PhysicalSinkImpl(final String sinkId,
                           final Map<String, String> configuration,
                           final Sink<I> sink) {
     super(sinkId, configuration);
-    System.out.println("Sink counter: " + SINK_COUNTER.incrementAndGet() + ", topic: "
-        + configuration.get(ConfKeys.MqttSink.MQTT_SINK_TOPIC.name()));
     this.sink = sink;
   }
 
