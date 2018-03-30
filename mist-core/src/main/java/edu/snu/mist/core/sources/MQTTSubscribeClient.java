@@ -98,7 +98,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
   /**
    * Start to subscribe a topic.
    */
-  void subscribe(final String topic) throws MqttException {
+  void subscribe(final String topic) {
     synchronized (subscribeLock) {
       if (!started) {
         while (true) {
@@ -111,7 +111,11 @@ public final class MQTTSubscribeClient implements MqttCallback {
             started = true;
             break;
           } catch (final MqttException e) {
-            client.close();
+            try {
+              client.close();
+            } catch (final MqttException e1) {
+              // do nothing
+            }
             // Reconnect mqtt
             LOG.log(Level.SEVERE, "Connection for broker {0} with id {1} failed ... Retry connection",
                 new Object[] {brokerURI, clientId});
@@ -123,7 +127,20 @@ public final class MQTTSubscribeClient implements MqttCallback {
           }
         }
       }
-      client.subscribe(topic, 0);
+
+      try {
+        client.subscribe(topic, 0);
+      } catch (final MqttException e) {
+        LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}",
+            new Object[] {topic, e});
+        try {
+          client.close();
+        } catch (final MqttException e1) {
+          // do nothing
+        }
+        started = false;
+        subscribe(topic);
+      }
     }
   }
 
