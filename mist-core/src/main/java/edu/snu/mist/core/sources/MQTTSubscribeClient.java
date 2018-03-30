@@ -17,6 +17,8 @@ package edu.snu.mist.core.sources;
 
 import org.eclipse.paho.client.mqttv3.*;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -61,6 +63,8 @@ public final class MQTTSubscribeClient implements MqttCallback {
    */
   private final int mqttSourceKeepAliveSec;
 
+  private final List<String> topics;
+
   /**
    * Construct a client connected with target MQTT broker.
    * @param brokerURI the URI of broker to connect
@@ -74,6 +78,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
     this.dataGeneratorListMap = new ConcurrentHashMap<>();
     this.subscribeLock = new Object();
     this.mqttSourceKeepAliveSec = mqttSourceKeepAliveSec;
+    this.topics = new LinkedList<>();
   }
 
   /**
@@ -95,40 +100,45 @@ public final class MQTTSubscribeClient implements MqttCallback {
     return dataGenerator;
   }
 
+  private void connect() {
+    while (true) {
+      try {
+        client = new MqttAsyncClient(brokerURI, clientId);
+        final MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+        mqttConnectOptions.setKeepAliveInterval(mqttSourceKeepAliveSec);
+        client.connect(mqttConnectOptions).waitForCompletion();
+        client.setCallback(this);
+        break;
+      } catch (final MqttException e) {
+        try {
+          client.close();
+        } catch (final MqttException e1) {
+          // do nothing
+        }
+        // Reconnect mqtt
+        LOG.log(Level.SEVERE, "Connection for broker {0} with id {1} failed ... Retry connection",
+            new Object[] {brokerURI, clientId});
+        try {
+          Thread.sleep(1000);
+        } catch (final InterruptedException e1) {
+          e1.printStackTrace();
+        }
+      }
+    }
+  }
+
   /**
    * Start to subscribe a topic.
    */
   void subscribe(final String topic) {
     synchronized (subscribeLock) {
       if (!started) {
-        while (true) {
-          try {
-            client = new MqttAsyncClient(brokerURI, clientId);
-            final MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-            mqttConnectOptions.setKeepAliveInterval(mqttSourceKeepAliveSec);
-            client.connect(mqttConnectOptions).waitForCompletion();
-            client.setCallback(this);
-            started = true;
-            break;
-          } catch (final MqttException e) {
-            try {
-              client.close();
-            } catch (final MqttException e1) {
-              // do nothing
-            }
-            // Reconnect mqtt
-            LOG.log(Level.SEVERE, "Connection for broker {0} with id {1} failed ... Retry connection",
-                new Object[] {brokerURI, clientId});
-            try {
-              Thread.sleep(1000);
-            } catch (final InterruptedException e1) {
-              e1.printStackTrace();
-            }
-          }
-        }
+        connect();
+        started = true;
       }
 
       try {
+        topics.add(topic);
         client.subscribe(topic, 0);
       } catch (final MqttException e) {
         LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}",
@@ -138,9 +148,29 @@ public final class MQTTSubscribeClient implements MqttCallback {
         } catch (final MqttException e1) {
           // do nothing
         }
-        started = false;
-        subscribe(topic);
+
+        // Restart
+        connect();
+        resubscribe();
       }
+    }
+  }
+
+  void resubscribe() {
+    LOG.log(Level.SEVERE, "Resubscribe topics...");
+    try {
+      for (final String topic : topics) {
+        client.subscribe(topic, 0);
+      }
+    } catch (final MqttException e) {
+      try {
+        client.close();
+      } catch (final MqttException e1) {
+        // do nothing
+      }
+
+      connect();
+      resubscribe();
     }
   }
 
