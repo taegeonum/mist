@@ -21,12 +21,16 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class represents MQTT clients implemented with eclipse Paho.
  * It will subscribe a MQTT broker and send the received data toward appropriate DataGenerator.
  */
 public final class MQTTSubscribeClient implements MqttCallback {
+  private static final Logger LOG = Logger.getLogger(MQTTSubscribeClient.class.getName());
+
   /**
    * A flag for start.
    */
@@ -97,12 +101,26 @@ public final class MQTTSubscribeClient implements MqttCallback {
   void subscribe(final String topic) throws MqttException {
     synchronized (subscribeLock) {
       if (!started) {
-        client = new MqttAsyncClient(brokerURI, clientId);
-        final MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setKeepAliveInterval(mqttSourceKeepAliveSec);
-        client.connect(mqttConnectOptions).waitForCompletion();
-        client.setCallback(this);
-        started = true;
+        while (true) {
+          try {
+            client = new MqttAsyncClient(brokerURI, clientId);
+            final MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+            mqttConnectOptions.setKeepAliveInterval(mqttSourceKeepAliveSec);
+            client.connect(mqttConnectOptions).waitForCompletion();
+            client.setCallback(this);
+            started = true;
+            break;
+          } catch (final MqttException e) {
+            // Reconnect mqtt
+            LOG.log(Level.SEVERE, "Connection for broker {0} with id {1} failed ... Retry connection",
+                new Object[] {brokerURI, clientId});
+            try {
+              Thread.sleep(1000);
+            } catch (final InterruptedException e1) {
+              e1.printStackTrace();
+            }
+          }
+        }
       }
       client.subscribe(topic, 0);
     }
