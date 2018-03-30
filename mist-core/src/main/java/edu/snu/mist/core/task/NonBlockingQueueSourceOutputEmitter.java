@@ -15,11 +15,11 @@
  */
 package edu.snu.mist.core.task;
 
+import edu.snu.mist.common.graph.MISTEdge;
 import edu.snu.mist.core.MistCheckpointEvent;
 import edu.snu.mist.core.MistDataEvent;
 import edu.snu.mist.core.MistEvent;
 import edu.snu.mist.core.MistWatermarkEvent;
-import edu.snu.mist.common.graph.MISTEdge;
 import edu.snu.mist.formats.avro.Direction;
 
 import java.util.Map;
@@ -27,7 +27,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -73,16 +72,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
     this.nextOperators = nextOperators;
     this.query = query;
     this.numEvents = new AtomicInteger();
-
-    if (ES_STARTED.compareAndSet(false, true)) {
-      PREV_STARTTIME.set(System.currentTimeMillis());
-      ES.scheduleAtFixedRate(() -> {
-        final long et = System.currentTimeMillis();
-        final long cnt = DATA_COUNTER.get();
-        DATA_COUNTER.addAndGet(-cnt);
-        System.out.println("Processing rate: " + cnt + " at " + et);
-      }, 1000, 1000, TimeUnit.MILLISECONDS);
-    }
   }
 
   @Override
@@ -149,7 +138,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       //System.out.println("Event is added at sourceOutputEmitter: " + data.getValue() + ", # events: " + n);
       queue.add(data);
       final int n = numEvents.getAndIncrement();
-      if (n <= 0) {
+      if (n == 0) {
         query.insert(this);
       }
     } catch (final Exception e) {
@@ -165,7 +154,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       queue.add(data);
       final int n = numEvents.getAndIncrement();
 
-      if (n <= 0) {
+      if (n == 0) {
         query.insert(this);
       }
     } catch (final Exception e) {
@@ -179,7 +168,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       queue.add(watermark);
       final int n = numEvents.getAndIncrement();
 
-      if (n <= 0) {
+      if (n == 0) {
         query.insert(this);
       }
     } catch (final Exception e) {
@@ -193,7 +182,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       queue.add(checkpoint);
       final int n = numEvents.getAndIncrement();
 
-      if (n <= 0) {
+      if (n == 0) {
         query.insert(this);
       }
     } catch (final Exception e) {

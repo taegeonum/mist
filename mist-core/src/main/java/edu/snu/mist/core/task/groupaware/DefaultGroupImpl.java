@@ -142,7 +142,7 @@ final class DefaultGroupImpl implements Group {
     final int n = numActiveSubGroup.getAndIncrement();
     //System.out.println("Event is added at Group, # group: " + n);
 
-    if (n <= 0) {
+    if (n == 0) {
       eventProcessor.get().addActiveGroup(this);
     }
   }
