@@ -111,6 +111,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
             started = true;
             break;
           } catch (final MqttException e) {
+            client.close();
             // Reconnect mqtt
             LOG.log(Level.SEVERE, "Connection for broker {0} with id {1} failed ... Retry connection",
                 new Object[] {brokerURI, clientId});
