@@ -84,7 +84,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
     Queue<MQTTDataGenerator> dataGeneratorList = dataGeneratorListMap.get(topic);
     if (dataGeneratorList == null) {
       dataGeneratorList = new ConcurrentLinkedQueue<>();
-      dataGeneratorListMap.put(topic, dataGeneratorList);
+      dataGeneratorListMap.putIfAbsent(topic, dataGeneratorList);
     }
     final MQTTDataGenerator dataGenerator = new MQTTDataGenerator(this, topic);
     dataGeneratorListMap.get(topic).add(dataGenerator);

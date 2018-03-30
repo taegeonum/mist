@@ -51,6 +51,9 @@ final class DfsCommonSubDagFinder implements CommonSubDagFinder {
       if (sameVertex != null) {
         // do dfs search
         dfsSearch(executionDag, submittedDag, markedVertices, sameVertex, submitVertex, vertexMap, visited);
+      } else {
+        // TODO: REMOVE
+        throw new RuntimeException("Current test cannot reach this code");
       }
     }
     return vertexMap;
@@ -81,7 +84,9 @@ final class DfsCommonSubDagFinder implements CommonSubDagFinder {
     // Check if the operator is join or union
     if (submittedDag.getInDegree(currSubmitDagVertex) > 1 && !markedVertices.contains(currSubmitDagVertex)) {
       markedVertices.add(currSubmitDagVertex);
-      return;
+      // TODO: REMOVE
+      throw new RuntimeException("Current test cannot reach this code");
+      //return;
     }
 
     // Set the same vertex btw submitted dag and mergeable execution Dag.
