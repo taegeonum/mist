@@ -112,7 +112,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
       } catch (final MqttException e) {
         try {
           client.close();
-        } catch (final MqttException e1) {
+        } catch (final Exception e1) {
           // do nothing
         }
         // Reconnect mqtt
