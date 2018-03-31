@@ -23,10 +23,12 @@ import edu.snu.mist.core.shared.MQTTResource;
 import edu.snu.mist.core.shared.NettySharedResource;
 import edu.snu.mist.core.sources.parameters.PeriodicCheckpointPeriod;
 import edu.snu.mist.core.task.*;
+import edu.snu.mist.core.task.checkpointing.CheckpointManager;
 import edu.snu.mist.core.task.groupaware.parameters.ApplicationIdentifier;
 import edu.snu.mist.core.task.groupaware.parameters.JarFilePath;
 import edu.snu.mist.core.task.stores.QueryInfoStore;
 import edu.snu.mist.formats.avro.AvroDag;
+import edu.snu.mist.formats.avro.QueryCheckpoint;
 import edu.snu.mist.formats.avro.QueryControlResult;
 import org.apache.reef.io.Tuple;
 import org.apache.reef.tang.Injector;
@@ -113,6 +115,11 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
 
 
   /**
+   * The checkpointManager.
+   */
+  private final CheckpointManager checkpointManager;
+
+  /**
    * Default query manager in MistTask.
    */
   @Inject
@@ -128,7 +135,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
                                      final ApplicationMap applicationMap,
                                      final GroupMap groupMap,
                                      @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod,
-                                     final GroupIdRequestor groupIdRequestor) {
+                                     final GroupIdRequestor groupIdRequestor,
+                                     final CheckpointManager checkpointManager) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;
     this.eventProcessorManager = eventProcessorManager;
@@ -141,6 +149,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     this.applicationMap = applicationMap;
     this.groupMap = groupMap;
     this.checkpointPeriod = checkpointPeriod;
+    this.checkpointManager = checkpointManager;
     this.groupIdRequestor = groupIdRequestor;
   }
 
@@ -155,6 +164,12 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
    */
   @Override
   public QueryControlResult create(final AvroDag avroDag) {
+    return createQueryWithCheckpoint(avroDag, null);
+  }
+
+  @Override
+  public QueryControlResult createQueryWithCheckpoint(final AvroDag avroDag,
+                                                      final QueryCheckpoint checkpointedState) {
     final QueryControlResult queryControlResult = new QueryControlResult();
     final String queryId = avroDag.getQueryId();
     queryControlResult.setQueryId(queryId);
@@ -162,7 +177,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       // Create the submitted query
       // 1) Saves the avr dag to the PlanStore and
       // converts the avro dag to the logical and execution dag
-      // TODO: [MIST-1034] Save query in checkpoint manager
+      checkpointManager.storeQuery(avroDag);
 
       // Update app information
       final String appId = avroDag.getAppId();
@@ -177,7 +192,12 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       }
 
       final ApplicationInfo applicationInfo = applicationMap.get(appId);
-      final DAG<ConfigVertex, MISTEdge> configDag = configDagGenerator.generate(avroDag);
+      final DAG<ConfigVertex, MISTEdge> configDag;
+      if (checkpointedState == null) {
+        configDag = configDagGenerator.generate(avroDag);
+      } else {
+        configDag = configDagGenerator.generateWithCheckpointedStates(avroDag, checkpointedState);
+      }
 
       // Waiting for group information being added
       while (applicationInfo.getGroups().isEmpty()) {

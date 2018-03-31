@@ -15,22 +15,28 @@
  */
 package edu.snu.mist.core.task.checkpointing;
 
-import edu.snu.mist.common.graph.AdjacentListDAG;
-import edu.snu.mist.common.graph.DAG;
-import edu.snu.mist.common.graph.MISTEdge;
 import edu.snu.mist.core.sources.parameters.PeriodicCheckpointPeriod;
-import edu.snu.mist.core.task.*;
+import edu.snu.mist.core.task.Query;
+import edu.snu.mist.core.task.QueryManager;
+import edu.snu.mist.core.task.QueryRemover;
 import edu.snu.mist.core.task.groupaware.*;
 import edu.snu.mist.core.task.stores.GroupCheckpointStore;
-import edu.snu.mist.formats.avro.*;
+import edu.snu.mist.formats.avro.AvroDag;
+import edu.snu.mist.formats.avro.CheckpointResult;
+import edu.snu.mist.formats.avro.QueryCheckpoint;
 import org.apache.reef.io.Tuple;
+import org.apache.reef.tang.InjectionFuture;
 import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -59,9 +65,9 @@ public final class DefaultCheckpointManagerImpl implements CheckpointManager {
   private final GroupAllocationTableModifier groupAllocationTableModifier;
 
   /**
-   * The query manager for the task.
-   */
-  private final QueryManager queryManager;
+   * The query manager for the task. Use InjectionFuture to avoid cyclic injection.
+   **/
+  private final InjectionFuture<QueryManager> queryManagerFuture;
 
   /**
    * The checkpoint period.
@@ -73,102 +79,58 @@ public final class DefaultCheckpointManagerImpl implements CheckpointManager {
                                        final GroupMap groupMap,
                                        final GroupCheckpointStore groupCheckpointStore,
                                        final GroupAllocationTableModifier groupAllocationTableModifier,
-                                       final QueryManager queryManager,
+                                       final InjectionFuture<QueryManager> queryManagerFuture,
                                        @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod) {
     this.applicationMap = applicationMap;
     this.groupMap = groupMap;
     this.checkpointStore = groupCheckpointStore;
     this.groupAllocationTableModifier = groupAllocationTableModifier;
-    this.queryManager = queryManager;
     this.checkpointPeriod = checkpointPeriod;
+    this.queryManagerFuture = queryManagerFuture;
     if (checkpointPeriod == 0) {
       LOG.log(Level.INFO, "checkpointing is not turned on");
+    } else {
+      LOG.log(Level.INFO, "Start checkpointing... Period = {0}", checkpointPeriod);
+      final ScheduledExecutorService checkpointScheduler = Executors.newSingleThreadScheduledExecutor();
+      final CheckpointRunner runner = new CheckpointRunner(groupMap, this);
+      checkpointScheduler.scheduleAtFixedRate(runner, checkpointPeriod, checkpointPeriod, TimeUnit.MILLISECONDS);
     }
+  }
+
+  @Override
+  public boolean storeQuery(final AvroDag avroDag) {
+    return checkpointStore.saveQuery(avroDag);
   }
 
   @Override
   public void recoverGroup(final String groupId) throws IOException {
-    final GroupCheckpoint checkpoint;
+    final Map<String, QueryCheckpoint> queryCheckpointMap;
+    final List<AvroDag> dagList;
+    final QueryManager queryManager = queryManagerFuture.get();
     try {
-      checkpoint = checkpointStore.loadGroupCheckpoint(groupId);
+      // Load the checkpointed states and the query lists.
+      queryCheckpointMap = checkpointStore.loadSavedGroupState(groupId).getQueryCheckpointMap();
+      final List<String> queryIdListInGroup = new ArrayList<>();
+      for (final String queryId : queryCheckpointMap.keySet()) {
+        queryIdListInGroup.add(queryId);
+      }
+      // Load the queries.
+      dagList = checkpointStore.loadSavedQueries(queryIdListInGroup);
     } catch (final FileNotFoundException ie) {
-      LOG.log(Level.WARNING, "Failed in loading app {0}, this app may not exist in the checkpoint store.",
+      LOG.log(Level.WARNING, "Failed in loading group {0}, this group may not exist in the checkpoint store.",
           new Object[]{groupId});
       return;
     }
 
-    // Construct a ConfigDag for each query and submit it.
-    // The submission process is almost the same to create(), except that it uses a ConfigDag instead of an AvroDag.
-    for (final Map.Entry<String, AvroConfigDag> entry : checkpoint.getAvroConfigDags().entrySet()) {
-      final String queryId = entry.getKey();
-      LOG.log(Level.INFO, "Query with id {0} is being submitted during recovery of group id {1}",
-          new Object[]{queryId, groupId});
-      final AvroConfigDag dag = entry.getValue();
-      final List<AvroConfigVertex> vertexList = dag.getAvroConfigVertices();
-      final List<AvroConfigMISTEdge> edgeList = dag.getAvroConfigMISTEdges();
-
-      // Construct a ConfigDag(DAG<ConfigVertex, MISTEdge>) from an AvroConfigDag.
-      final DAG<ConfigVertex, MISTEdge> configDag = new AdjacentListDAG<>();
-
-      for (final AvroConfigVertex vertex : vertexList) {
-        configDag.addVertex(convertToConfigVertex(vertex));
-      }
-
-      for (final AvroConfigMISTEdge edge : edgeList) {
-        final AvroConfigVertex fromVertex = vertexList.get(edge.getFromVertexIndex());
-        final AvroConfigVertex toVertex = vertexList.get(edge.getToVertexIndex());
-        configDag.addEdge(convertToConfigVertex(fromVertex), convertToConfigVertex(toVertex),
-            new MISTEdge(edge.getDirection(), edge.getIndex()));
-      }
-
-      // Submit the query with the ConfigDag. This is almost the same to create().
-      try {
-        if (LOG.isLoggable(Level.FINE)) {
-          LOG.log(Level.FINE, "Recover Query [groupId: {0}, qid: {1}]",
-              new Object[]{groupId, queryId});
-        }
-
-        // Add the query info to the queryManager.
-        final List<String> jarFilePaths = checkpoint.getJarFilePaths();
-        final String appId = checkpoint.getApplicationId();
-        final ApplicationInfo applicationInfo;
-        if (applicationMap.containsKey(appId)) {
-          applicationInfo = applicationMap.get(appId);
-        } else {
-          applicationInfo =
-              queryManager.createApplication(checkpoint.getApplicationId(), jarFilePaths);
-        }
-        // Waiting for group information being added
-        while (applicationInfo.getGroups().isEmpty()) {
-          Thread.sleep(100);
-        }
-        // Start the submitted dag
-        queryManager.createAndStartQuery(queryId, applicationInfo, configDag);
-      } catch (final Exception e) {
-        e.printStackTrace();
-        // [MIST-345] We need to release all of the information that is required for the query when it fails.
-        LOG.log(Level.SEVERE, "An exception occurred while recovering {0} query: {1}",
-            new Object[] {groupId, e.toString()});
-      }
+    for (final AvroDag avroDag : dagList) {
+      final QueryCheckpoint queryCheckpoint = queryCheckpointMap.get(avroDag.getQueryId());
+      // Recover each query in the group.
+      queryManager.createQueryWithCheckpoint(avroDag, queryCheckpoint);
     }
-  }
-
-  private ConfigVertex convertToConfigVertex(final AvroConfigVertex vertex) {
-    final ExecutionVertex.Type type;
-    if (vertex.getType() == AvroConfigVertexType.SOURCE) {
-      type = ExecutionVertex.Type.SOURCE;
-    } else if (vertex.getType() == AvroConfigVertexType.OPERATOR) {
-      type = ExecutionVertex.Type.OPERATOR;
-    } else {
-      type = ExecutionVertex.Type.SINK;
-    }
-    return new ConfigVertex(vertex.getId(), type,
-        vertex.getConfiguration(), vertex.getState(), vertex.getLatestCheckpointTimestamp());
   }
 
   @Override
   public boolean checkpointGroup(final String groupId) {
-    LOG.log(Level.INFO, "Checkpoint started for groupId : {0}", groupId);
     final Group group = groupMap.get(groupId);
     if (group == null) {
       LOG.log(Level.WARNING, "There is no such group {0}.",
@@ -176,7 +138,9 @@ public final class DefaultCheckpointManagerImpl implements CheckpointManager {
       return false;
     }
     final CheckpointResult result =
-        checkpointStore.saveGroupCheckpoint(new Tuple<>(groupId, group));
+        checkpointStore.checkpointGroupStates(new Tuple<>(groupId, group));
+    LOG.log(Level.INFO, "Checkpoint started for groupId : {0}, result : {1}",
+        new Object[]{groupId, result.getIsSuccess()});
     return result.getIsSuccess();
   }
 
@@ -205,5 +169,36 @@ public final class DefaultCheckpointManagerImpl implements CheckpointManager {
   @Override
   public ApplicationInfo getApplication(final String appId) {
     return applicationMap.get(appId);
+  }
+
+  /**
+   * A runnable class for automatic periodic checkpointing.
+   */
+  private final class CheckpointRunner implements Runnable {
+
+    /**
+     * The group map.
+     */
+    private final GroupMap groupMap;
+
+    /**
+     * The checkpoint manager.
+     */
+    private final CheckpointManager checkpointManager;
+
+    public CheckpointRunner(final GroupMap groupMap,
+                            final CheckpointManager checkpointManager) {
+      this.groupMap = groupMap;
+      this.checkpointManager = checkpointManager;
+    }
+
+    @Override
+    public synchronized void run() {
+      // Checkpoint the all registered groups.
+      for (final Map.Entry<String, Group> groupEntry : groupMap.entrySet()) {
+        final String groupId = groupEntry.getKey();
+        checkpointManager.checkpointGroup(groupId);
+      }
+    }
   }
 }
