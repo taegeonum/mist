@@ -71,7 +71,7 @@ public final class MqttSink implements Sink<MqttMessage> {
     } catch (final MqttException e) {
       // Reconnect!
       e.printStackTrace();
-      LOG.log(Level.SEVERE, "Reconnecting sink client of topic " + topic +", uri: " + brokerURI);
+      LOG.log(Level.SEVERE, "Reconnecting sink client of topic " + topic + ", uri: " + brokerURI);
       resource.deleteMqttSinkClient(brokerURI, topic, mqttClient);
       reconnect();
       handle(input);
