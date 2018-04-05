@@ -25,6 +25,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -69,6 +70,8 @@ public final class MqttSink implements Sink<MqttMessage> {
       mqttClient.publish(topic, input);
     } catch (final MqttException e) {
       // Reconnect!
+      e.printStackTrace();
+      LOG.log(Level.SEVERE, "Reconnecting sink client of topic " + topic +", uri: " + brokerURI);
       resource.deleteMqttSinkClient(brokerURI, topic, mqttClient);
       reconnect();
       handle(input);
