@@ -99,7 +99,8 @@ public final class DefaultCheckpointManagerImpl implements CheckpointManager {
 
   @Override
   public boolean storeQuery(final AvroDag avroDag) {
-    return checkpointStore.saveQuery(avroDag);
+    return true;
+    //return checkpointStore.saveQuery(avroDag);
   }
 
   @Override
