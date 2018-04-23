@@ -15,12 +15,11 @@
  */
 package edu.snu.mist.common.sources;
 
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+
 
 /**
  * This class receives data stream via MQTTSubscribeClient.
@@ -75,13 +74,7 @@ public final class MQTTDataGenerator implements DataGenerator<MqttMessage> {
   @Override
   public void start() {
     if (started.compareAndSet(false, true)) {
-      try {
-        subClient.subscribe(topic);
-      } catch (final MqttException e) {
-        LOG.log(Level.SEVERE, "{0} failed to subscribe topic {1}",
-            new Object[]{this.getClass().getName(), topic});
-        this.close();
-      }
+      subClient.subscribe(topic);
     }
   }
 

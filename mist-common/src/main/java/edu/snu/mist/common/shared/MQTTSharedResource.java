@@ -198,8 +198,8 @@ public final class MQTTSharedResource implements MQTTResource {
    */
   private void createSinkClient(final String brokerURI, final List<IMqttAsyncClient> mqttAsyncClientList)
       throws MqttException, IOException {
-    final IMqttAsyncClient client = new MqttAsyncClient(brokerURI, MQTT_PUBLISHER_ID_PREFIX + brokerURI +
-        mqttAsyncClientList.size());
+    final IMqttAsyncClient client = new MqttAsyncClient(brokerURI, MQTT_PUBLISHER_ID_PREFIX
+        + brokerURI + mqttAsyncClientList.size());
     final MqttConnectOptions connectOptions = new MqttConnectOptions();
     connectOptions.setMaxInflight(maxInflightMqttEventNum);
     connectOptions.setKeepAliveInterval(mqttSinkKeepAliveSec);
@@ -233,8 +233,8 @@ public final class MQTTSharedResource implements MQTTResource {
       // Initialize the client list...
       final List<MQTTSubscribeClient> newSubscribeClientList = new ArrayList<>();
       for (int i = 0; i < this.mqttSourceClientNumPerBroker; i++) {
-        final MQTTSubscribeClient subscribeClient = new MQTTSubscribeClient(brokerURI, MQTT_SUBSCRIBER_ID_PREFIX +
-            brokerURI + "_" + i, mqttSourceKeepAliveSec);
+        final MQTTSubscribeClient subscribeClient = new MQTTSubscribeClient(brokerURI, MQTT_SUBSCRIBER_ID_PREFIX
+            + brokerURI + "_" + i, mqttSourceKeepAliveSec);
         subscriberSourceNumMap.put(subscribeClient, 0);
         newSubscribeClientList.add(subscribeClient);
       }
@@ -245,15 +245,17 @@ public final class MQTTSharedResource implements MQTTResource {
       final MQTTSubscribeClient client = newSubscribeClientList.get(0);
       myTopicSubscriberMap.put(topic, client);
       subscriberSourceNumMap.replace(client, subscriberSourceNumMap.get(client) + 1);
+      final MQTTDataGenerator gen = client.connectToTopic(topic);
       this.subscriberLock.unlock();
-      return client.connectToTopic(topic);
+      return gen;
     } else {
       final Map<String, MQTTSubscribeClient> myTopicSubscriberMap = topicSubscriberMap.get(brokerURI);
       if (myTopicSubscriberMap.containsKey(topic)) {
         // This is for group-sharing.
         final MQTTSubscribeClient client = myTopicSubscriberMap.get(topic);
+        final MQTTDataGenerator gen = client.connectToTopic(topic);
         this.subscriberLock.unlock();
-        return client.connectToTopic(topic);
+        return gen;
       } else {
         // This is a new group.
         int minSourceNum = Integer.MAX_VALUE;
@@ -266,8 +268,9 @@ public final class MQTTSharedResource implements MQTTResource {
         }
         subscriberSourceNumMap.replace(client, subscriberSourceNumMap.get(client) + 1);
         myTopicSubscriberMap.put(topic, client);
+        final MQTTDataGenerator gen = client.connectToTopic(topic);
         this.subscriberLock.unlock();
-        return client.connectToTopic(topic);
+        return gen;
       }
     }
   }
