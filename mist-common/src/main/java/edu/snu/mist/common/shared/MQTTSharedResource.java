@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -115,6 +116,7 @@ public final class MQTTSharedResource implements MQTTResource {
    */
   private final int mqttSinkKeepAliveSec;
 
+
   @Inject
   private MQTTSharedResource(
       @Parameter(MqttSourceClientNumPerBroker.class) final int mqttSourceClientNumPerBrokerParam,
@@ -188,6 +190,23 @@ public final class MQTTSharedResource implements MQTTResource {
     }
   }
 
+  @Override
+  public void deleteMqttSinkClient(final String brokerURI,
+                                   final String topic,
+                                   final IMqttAsyncClient client) {
+    this.publisherLock.lock();
+    try {
+      client.close();
+    } catch (MqttException e) {
+      e.printStackTrace();
+    }
+    final List<IMqttAsyncClient> mqttAsyncClientList = brokerPublisherMap.get(brokerURI);
+    mqttAsyncClientList.remove(client);
+    topicPublisherMap.get(brokerURI).remove(topic);
+    publisherSinkNumMap.remove(client);
+    this.publisherLock.unlock();
+  }
+
   /**
    * A helper function which creates create sink client. Should be called with publisherLock acquired.
    * @param brokerURI broker URI
@@ -198,14 +217,27 @@ public final class MQTTSharedResource implements MQTTResource {
    */
   private void createSinkClient(final String brokerURI, final List<IMqttAsyncClient> mqttAsyncClientList)
       throws MqttException, IOException {
-    final IMqttAsyncClient client = new MqttAsyncClient(brokerURI, MQTT_PUBLISHER_ID_PREFIX
-        + brokerURI + mqttAsyncClientList.size());
-    final MqttConnectOptions connectOptions = new MqttConnectOptions();
-    connectOptions.setMaxInflight(maxInflightMqttEventNum);
-    connectOptions.setKeepAliveInterval(mqttSinkKeepAliveSec);
-    client.connect(connectOptions).waitForCompletion();
-    mqttAsyncClientList.add(client);
-    publisherSinkNumMap.put(client, 0);
+    while (true) {
+      try {
+        final IMqttAsyncClient client = new MqttAsyncClient(brokerURI, MQTT_PUBLISHER_ID_PREFIX
+            + brokerURI + mqttAsyncClientList.size());
+        final MqttConnectOptions connectOptions = new MqttConnectOptions();
+        connectOptions.setMaxInflight(maxInflightMqttEventNum);
+        connectOptions.setKeepAliveInterval(mqttSinkKeepAliveSec);
+        client.connect(connectOptions).waitForCompletion();
+        mqttAsyncClientList.add(client);
+        publisherSinkNumMap.put(client, 0);
+        break;
+      } catch (final MqttException e) {
+        // Retry
+        LOG.log(Level.SEVERE, "Retry mqtt sink connection");
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
+      }
+    }
   }
 
   private String getGroupName(final String mqttTopic) {
@@ -233,8 +265,8 @@ public final class MQTTSharedResource implements MQTTResource {
       // Initialize the client list...
       final List<MQTTSubscribeClient> newSubscribeClientList = new ArrayList<>();
       for (int i = 0; i < this.mqttSourceClientNumPerBroker; i++) {
-        final MQTTSubscribeClient subscribeClient = new MQTTSubscribeClient(brokerURI, MQTT_SUBSCRIBER_ID_PREFIX
-            + brokerURI + "_" + i, mqttSourceKeepAliveSec);
+        final MQTTSubscribeClient subscribeClient = new MQTTSubscribeClient(brokerURI, MQTT_SUBSCRIBER_ID_PREFIX +
+            brokerURI + "_" + i, mqttSourceKeepAliveSec);
         subscriberSourceNumMap.put(subscribeClient, 0);
         newSubscribeClientList.add(subscribeClient);
       }
