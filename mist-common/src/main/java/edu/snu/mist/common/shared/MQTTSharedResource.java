@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -116,6 +117,7 @@ public final class MQTTSharedResource implements MQTTResource {
    */
   private final int mqttSinkKeepAliveSec;
 
+  private final AtomicInteger clientId = new AtomicInteger(0);
 
   @Inject
   private MQTTSharedResource(
@@ -266,7 +268,7 @@ public final class MQTTSharedResource implements MQTTResource {
       final List<MQTTSubscribeClient> newSubscribeClientList = new ArrayList<>();
       for (int i = 0; i < this.mqttSourceClientNumPerBroker; i++) {
         final MQTTSubscribeClient subscribeClient = new MQTTSubscribeClient(brokerURI, MQTT_SUBSCRIBER_ID_PREFIX +
-            brokerURI + "_" + i, mqttSourceKeepAliveSec);
+            brokerURI + "_", clientId, mqttSourceKeepAliveSec);
         subscriberSourceNumMap.put(subscribeClient, 0);
         newSubscribeClientList.add(subscribeClient);
       }

@@ -23,6 +23,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 /**
@@ -47,7 +48,9 @@ public final class MQTTSubscribeClient implements MqttCallback {
   /**
    * The id of client.
    */
-  private final String clientId;
+  private final AtomicInteger clientId;
+  private final String clientPrefix;
+
   /**
    * The map coupling MQTT topic name and list of MQTTDataGenerators.
    */
@@ -72,11 +75,13 @@ public final class MQTTSubscribeClient implements MqttCallback {
    * @param brokerURI the URI of broker to connect
    */
   public MQTTSubscribeClient(final String brokerURI,
-                             final String clientId,
+                             final String clientPrefix,
+                             final AtomicInteger clientId,
                              final int mqttSourceKeepAliveSec) {
     this.started = false;
     this.brokerURI = brokerURI;
     this.clientId = clientId;
+    this.clientPrefix = clientPrefix;
     this.dataGeneratorListMap = new ConcurrentHashMap<>();
     this.subscribeLock = new Object();
     this.mqttSourceKeepAliveSec = mqttSourceKeepAliveSec;
@@ -108,7 +113,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
   private void connect() {
     while (true) {
       try {
-        client = new MqttAsyncClient(brokerURI, clientId);
+        client = new MqttAsyncClient(brokerURI, clientPrefix + clientId.getAndIncrement());
         final MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setKeepAliveInterval(mqttSourceKeepAliveSec);
         client.connect(mqttConnectOptions).waitForCompletion();
@@ -170,6 +175,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
       for (final String topic : topics) {
         client.subscribe(topic, 0);
       }
+      LOG.log(Level.SEVERE, "End of resubscribing topics...");
     } catch (final MqttException e) {
       try {
         client.close();

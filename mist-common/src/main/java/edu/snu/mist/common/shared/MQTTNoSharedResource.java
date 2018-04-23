@@ -90,8 +90,8 @@ public final class MQTTNoSharedResource implements MQTTResource {
 
   @Override
   public MQTTDataGenerator getDataGenerator(final String brokerURI, final String topic) {
-    final MQTTSubscribeClient client = new MQTTSubscribeClient(brokerURI, MQTT_SUBSCRIBER_ID_PREFIX +
-        sourceClientCounter.getAndIncrement(), mqttSourceKeepAliveSec);
+    final MQTTSubscribeClient client = new MQTTSubscribeClient(brokerURI, MQTT_SUBSCRIBER_ID_PREFIX,
+        sourceClientCounter, mqttSourceKeepAliveSec);
    return client.connectToTopic(topic);
   }
 
