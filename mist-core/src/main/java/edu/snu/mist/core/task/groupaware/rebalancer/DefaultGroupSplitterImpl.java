@@ -249,10 +249,11 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                   lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
                   highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
 
-                  rebNum += 1;
                   n += 1;
                 }
               }
+
+              rebNum += 1;
 
               // Prevent lots of groups from being reassigned
               if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
