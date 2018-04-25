@@ -215,7 +215,9 @@ final class DefaultGroupImpl implements Group {
 
         query.setReady();
       } else {
-        activeQueryQueue.add(query);
+        if (query.getGroup() == this) {
+          activeQueryQueue.add(query);
+        }
       }
 
       // Reschedule this group if it still has events to process
