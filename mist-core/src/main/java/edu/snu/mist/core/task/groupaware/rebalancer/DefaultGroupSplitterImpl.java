@@ -208,6 +208,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               // Sorting queries
               final List<Query> queries = highLoadGroup.getQueries();
               final List<Query> sortedQueries = new ArrayList<>(queries);
+              /*
               sortedQueries.sort(new Comparator<Query>() {
                 @Override
                 public int compare(final Query o1, final Query o2) {
@@ -220,6 +221,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                   }
                 }
               });
+              */
 
               final EventProcessor lowLoadThread = underloadedThreads.poll();
               Group sameGroup = hasSameGroup(highLoadGroup, lowLoadThread);
