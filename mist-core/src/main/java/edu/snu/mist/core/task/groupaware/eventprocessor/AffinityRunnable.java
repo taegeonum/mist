@@ -56,6 +56,8 @@ public final class AffinityRunnable implements Runnable {
    */
   private long numProcessedEvents;
 
+  private EventProcessor ep;
+
   public AffinityRunnable(final NextGroupSelector nextGroupSelector) {
     this.nextGroupSelector = nextGroupSelector;
     this.load = 0.0;
@@ -78,18 +80,24 @@ public final class AffinityRunnable implements Runnable {
       while (!Thread.currentThread().isInterrupted() && !closed) {
         // Pick an active group
         final Group groupInfo = nextGroupSelector.getNextExecutableGroup();
-        final long startTime = System.nanoTime();
-        numProcessedEvents = groupInfo.processAllEvent();
-        final long endTime = System.nanoTime();
-        groupInfo.getProcessingEvent().addAndGet(numProcessedEvents);
-        groupInfo.getProcessingTime().getAndAdd(endTime - startTime);
 
+        if (groupInfo.getEventProcessor() == ep) {
+          final long startTime = System.nanoTime();
+          numProcessedEvents = groupInfo.processAllEvent();
+          final long endTime = System.nanoTime();
+          groupInfo.getProcessingEvent().addAndGet(numProcessedEvents);
+          groupInfo.getProcessingTime().getAndAdd(endTime - startTime);
+        }
         groupInfo.setReady();
       }
     } catch (final Exception e) {
       e.printStackTrace();
       throw new RuntimeException(e + ", OperatorChainManager should not return null");
     }
+  }
+
+  public void setEventProcessor(final EventProcessor eep) {
+    this.ep = eep;
   }
 
   public double getLoad() {
