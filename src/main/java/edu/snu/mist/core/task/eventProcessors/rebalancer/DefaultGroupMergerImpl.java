@@ -244,6 +244,7 @@ public final class DefaultGroupMergerImpl implements GroupMerger {
                 // 3. merge!
                 if (merge(highLoadGroup, highLoadGroups, highLoadThread, lowLoadGroup)) {
                   rebNum += 1;
+                  highLoadGroups.remove(highLoadGroup);
 
                   if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
                     break;
