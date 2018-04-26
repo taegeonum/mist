@@ -146,7 +146,8 @@ public final class MistDriver {
       final JVMProcess jvmProcess = jvmProcessFactory.newEvaluatorProcess()
           .setMemory(mistDriverConfigs.getTaskMemSize())
           .addOption("-XX:NewRatio=" + mistDriverConfigs.getNewRatio())
-          .addOption("-XX:ReservedCodeCacheSize=" + mistDriverConfigs.getReservedCodeCacheSize() + "m");
+          .addOption("-XX:ReservedCodeCacheSize=" + mistDriverConfigs.getReservedCodeCacheSize() + "m")
+          .addOption("-XX:+UseNUMA");
       allocatedEvaluator.setProcess(jvmProcess);
       allocatedEvaluator.submitContext(ContextConfiguration.CONF
           .set(ContextConfiguration.IDENTIFIER, taskId)
