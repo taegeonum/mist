@@ -48,7 +48,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
   /**
    * The id of client.
    */
-  private final String clientId;
+  private String clientId;
   /**
    * The map coupling MQTT topic name and list of MQTTDataGenerators.
    */
@@ -136,7 +136,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
   /**
    * Start to subscribe a topic.
    */
-  void subscribe(final String topic) {
+  synchronized void subscribe(final String topic) {
     synchronized (subscribeLock) {
       if (!started) {
         connect();
@@ -149,6 +149,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
       } catch (final MqttException e) {
         LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}",
             new Object[] {topic, e});
+        clientId = clientId + "a";
         try {
           client.close();
         } catch (final MqttException e1) {
@@ -165,7 +166,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
   /**
    * Resubscribe topics.
    */
-  private void resubscribe() {
+  synchronized private void resubscribe() {
     LOG.log(Level.SEVERE, "Resubscribe topics...");
     try {
       for (final String topic : topics) {
