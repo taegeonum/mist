@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -122,6 +123,8 @@ public final class MQTTSharedResource implements MQTTResource {
    */
   private String taskHostname;
 
+  private final AtomicInteger idGen = new AtomicInteger(0);
+
   @Inject
   private MQTTSharedResource(
       @Parameter(MqttSourceClientNumPerBroker.class) final int mqttSourceClientNumPerBrokerParam,
@@ -169,7 +172,8 @@ public final class MQTTSharedResource implements MQTTResource {
       topicPublisherMap.put(brokerURI, myTopicPublisherMap);
       // Get the first client...
       final IMqttAsyncClient client = brokerPublisherMap.get(brokerURI).get(0);
-      publisherSinkNumMap.replace(client, publisherSinkNumMap.get(client) + 1);
+      final Integer c = publisherSinkNumMap.get(client);
+      publisherSinkNumMap.replace(client, c + 1);
       myTopicPublisherMap.put(topic, client);
       this.publisherLock.unlock();
       return client;
@@ -227,7 +231,7 @@ public final class MQTTSharedResource implements MQTTResource {
     while (true) {
       try {
         final IMqttAsyncClient client = new MqttAsyncClient(brokerURI, MQTT_PUBLISHER_ID_PREFIX + taskHostname
-            + brokerURI + mqttAsyncClientList.size());
+            + brokerURI + idGen.getAndIncrement());
         final MqttConnectOptions connectOptions = new MqttConnectOptions();
         connectOptions.setMaxInflight(maxInflightMqttEventNum);
         connectOptions.setKeepAliveInterval(mqttSinkKeepAliveSec);
