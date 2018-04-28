@@ -23,9 +23,12 @@ import edu.snu.mist.common.shared.MQTTResource;
 import edu.snu.mist.common.shared.NettySharedResource;
 import edu.snu.mist.core.driver.parameters.DeactivationEnabled;
 import edu.snu.mist.core.driver.parameters.GroupAware;
+import edu.snu.mist.core.driver.parameters.JarSharing;
 import edu.snu.mist.core.driver.parameters.MergingEnabled;
 import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.batchsub.BatchQueryCreator;
+import edu.snu.mist.core.task.codeshare.ClassLoaderProvider;
+import edu.snu.mist.core.task.codeshare.NoSharingURLClassLoaderProvider;
 import edu.snu.mist.core.task.deactivation.GroupSourceManager;
 import edu.snu.mist.core.task.groupaware.*;
 import edu.snu.mist.core.task.groupaware.parameters.GroupSchedModelType;
@@ -121,6 +124,8 @@ public final class PTQQueryManagerImpl implements QueryManager {
 
   private final AtomicLong groupIdCounter = new AtomicLong(0);
 
+  private final boolean jarSharing;
+
   /**
    * Default query manager in MistTask.
    */
@@ -139,11 +144,13 @@ public final class PTQQueryManagerImpl implements QueryManager {
                               final DagGenerator dagGenerator,
                               @Parameter(GroupAware.class) final boolean groupAware,
                               final GroupAllocationTableModifier groupAllocationTableModifier,
-                              @Parameter(GroupSchedModelType.class) final String executionModel) {
+                              @Parameter(GroupSchedModelType.class) final String executionModel,
+                              @Parameter(JarSharing.class) final boolean jarSharing) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;
     this.groupInfoMap = groupInfoMap;
     this.mergingEnabled = mergingEnabled;
+    this.jarSharing = jarSharing;
     this.eventProcessorManager = eventProcessorManager;
     this.configDagGenerator = configDagGenerator;
     this.batchQueryCreator = batchQueryCreator;
@@ -195,6 +202,10 @@ public final class PTQQueryManagerImpl implements QueryManager {
       if (groupMap.get(realGroupId) == null) {
         // Add new group id, if it doesn't exist
         final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
+
+        if (!jarSharing) {
+          jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);
+        }
 
         if (mergingEnabled) {
           jcb.bindImplementation(QueryStarter.class, ImmediateQueryMergingStarter.class);
