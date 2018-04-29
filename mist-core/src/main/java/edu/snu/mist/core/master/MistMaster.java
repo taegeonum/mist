@@ -27,6 +27,9 @@ import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.task.Task;
 import org.apache.reef.task.events.CloseEvent;
 import org.apache.reef.wake.EventHandler;
+import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 
 import javax.inject.Inject;
 import java.net.InetSocketAddress;
@@ -100,8 +103,10 @@ public final class MistMaster implements Task {
         new InetSocketAddress(driverToMasterPort));
     this.clientToMasterServer = AvroUtils.createAvroServer(ClientToMasterMessage.class, clientToMasterMessage,
         new InetSocketAddress(clientToMasterPort));
+    final ChannelFactory factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(),
+        new OrderedMemoryAwareThreadPoolExecutor(8, 0, 0));
     this.taskToMasterServer = AvroUtils.createAvroServer(TaskToMasterMessage.class, taskToMasterMessage,
-        new InetSocketAddress(taskToMasterPort));
+        new InetSocketAddress(taskToMasterPort), factory);
   }
 
   @Override

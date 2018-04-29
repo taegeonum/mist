@@ -20,6 +20,7 @@ import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.avro.ipc.specific.SpecificResponder;
+import org.jboss.netty.channel.ChannelFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -47,6 +48,24 @@ public final class AvroUtils {
       final InetSocketAddress serverAddress) {
     final SpecificResponder responder = new SpecificResponder(messageClass, messageInstance);
     return new NettyServer(responder, serverAddress);
+  }
+
+  /**
+   * A helper method for making avro servers with a given ChannelFactory.
+   * @param messageClass The class of message.
+   * @param messageInstance The actual messaging instance.
+   * @param serverAddress The server host name and port number.
+   * @param channelFactory The custom channel factory
+   * @param <T> The class type of messaging instance.
+   * @return The avro server.
+   */
+  public static <T> Server createAvroServer(
+      final Class<T> messageClass,
+      final T messageInstance,
+      final InetSocketAddress serverAddress,
+      final ChannelFactory channelFactory) {
+    final SpecificResponder responder = new SpecificResponder(messageClass, messageInstance);
+    return new NettyServer(responder, serverAddress, channelFactory);
   }
 
   /**
