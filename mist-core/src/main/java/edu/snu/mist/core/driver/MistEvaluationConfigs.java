@@ -160,10 +160,13 @@ public final class MistEvaluationConfigs {
     jcb.bindImplementation(GroupAssigner.class, getGroupAssigner());
     jcb.bindNamedParameter(MergingEnabled.class, Boolean.toString(mergingEnabled));
     jcb.bindNamedParameter(Rebalancing.class, Boolean.toString(rebalancing));
+    jcb.bindNamedParameter(JarSharing.class, Boolean.toString(jarSharing));
 
     if (!this.jarSharing) {
       jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);
     }
+
+
 
     if (!this.networkSharing) {
       jcb.bindImplementation(MQTTResource.class, MQTTNoSharedResource.class);
