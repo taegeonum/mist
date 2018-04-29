@@ -179,6 +179,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
         // do nothing
       }
 
+      clientId = clientId + "a";
       connect();
       resubscribe();
     }
