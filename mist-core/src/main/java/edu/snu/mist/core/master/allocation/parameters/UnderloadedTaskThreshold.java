@@ -21,6 +21,6 @@ import org.apache.reef.tang.annotations.NamedParameter;
 /**
  * The threshold for determining underloaded tasks.
  */
-@NamedParameter(doc = "Underloaded task threshold", default_value = "0.8", short_name = "under_thd")
+@NamedParameter(doc = "Underloaded task threshold", default_value = "0.7", short_name = "under_thd")
 public final class UnderloadedTaskThreshold implements Name<Double> {
 }
