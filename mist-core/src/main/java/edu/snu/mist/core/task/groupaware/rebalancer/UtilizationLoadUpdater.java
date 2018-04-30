@@ -92,6 +92,7 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
 
     final List<Group> skipGroups = new LinkedList<>();
 
+
     for (final Group group : groups) {
       double load = 0.0;
 
