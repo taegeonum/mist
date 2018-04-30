@@ -242,6 +242,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
               final EventProcessor lowLoadThread = underloadedThreads.poll();
               Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
+              final double splitTargetLoad = (highLoadThread.getLoad() + lowLoadThread.getLoad()) / 2;
 
               if (sameGroup == null) {
                 // Split! Create a new group!
@@ -263,8 +264,8 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               }
 
               for (final Query movingQuery : sortedQueries) {
-                if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
-                    lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
+                if (highLoadThread.getLoad() - movingQuery.getLoad() >= splitTargetLoad - epsilon &&
+                    lowLoadThread.getLoad() + movingQuery.getLoad() <= splitTargetLoad + epsilon) {
 
                   // Move to the existing group!
                   sameGroup.addQuery(movingQuery);
