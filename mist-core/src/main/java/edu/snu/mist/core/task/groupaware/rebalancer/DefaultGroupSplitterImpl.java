@@ -225,6 +225,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               // Sorting queries
               final List<Query> queries = highLoadGroup.getQueries();
               final List<Query> sortedQueries = new ArrayList<>(queries);
+              /*
               sortedQueries.sort(new Comparator<Query>() {
                 @Override
                 public int compare(final Query o1, final Query o2) {
@@ -237,6 +238,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                   }
                 }
               });
+              */
 
               final EventProcessor lowLoadThread = underloadedThreads.poll();
               Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
@@ -274,11 +276,11 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                   lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
                   highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
 
-                  rebNum += 1;
                   n += 1;
                 }
               }
 
+              rebNum += 1;
               // Prevent lots of groups from being reassigned
               if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
                 break;

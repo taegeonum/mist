@@ -24,13 +24,14 @@ import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.groupaware.eventprocessor.EventProcessor;
 import edu.snu.mist.core.task.merging.ConfigExecutionVertexMap;
 import edu.snu.mist.core.task.merging.QueryIdConfigDagMap;
-import edu.snu.mist.formats.avro.*;
+import edu.snu.mist.formats.avro.GroupCheckpoint;
+import edu.snu.mist.formats.avro.QueryCheckpoint;
+import edu.snu.mist.formats.avro.StateWithTimestamp;
 import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -220,14 +221,14 @@ final class DefaultGroupImpl implements Group {
   }
 
   private long elapsedTime(final long startTime) {
-    return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+    return System.currentTimeMillis() - startTime;
   }
 
   @Override
   public int processAllEvent(final long timeout) {
     int numProcessedEvent = 0;
     Query query = activeQueryQueue.poll();
-    final long startTime = System.nanoTime();
+    final long startTime = System.currentTimeMillis();
 
     while (query != null) {
 
@@ -243,7 +244,9 @@ final class DefaultGroupImpl implements Group {
 
         query.setReady();
       } else {
-        activeQueryQueue.add(query);
+        if (query.getGroup() == this) {
+          activeQueryQueue.add(query);
+        }
       }
 
       // Reschedule this group if it still has events to process
