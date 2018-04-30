@@ -103,8 +103,8 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
       final long processingEventTime = group.getProcessingTime().get();
       group.getProcessingTime().addAndGet(-processingEventTime);
 
-      if (LOG.isLoggable(Level.INFO)) {
-        LOG.log(Level.INFO,
+      if (LOG.isLoggable(Level.FINE)) {
+        LOG.log(Level.FINE,
             "Group {0}, ProcessingEvent: {1}, IncomingEvent: {2}, ProcessingTime: {3}",
             new Object[] {group.getGroupId(), processingEvent, incomingEvent, processingEventTime});
       }
