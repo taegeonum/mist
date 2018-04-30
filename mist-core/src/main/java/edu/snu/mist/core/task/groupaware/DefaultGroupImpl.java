@@ -242,9 +242,11 @@ final class DefaultGroupImpl implements Group {
         numProcessedEvent += processedEvent;
 
         query.setReady();
-      } /*else {
-        activeQueryQueue.add(query);
-      }*/
+      } else {
+        if (query.getGroup() == this) {
+          activeQueryQueue.add(query);
+        }
+      }
 
       // Reschedule this group if it still has events to process
       if (elapsedTime(startTime) > timeout) {
