@@ -248,12 +248,13 @@ public final class DefaultGroupMergerImpl implements GroupMerger {
               // 1. find the thread that has the lowest load among threads that hold the splitted groups
               final Group lowLoadGroup = findLowestLoadThreadSplittedGroup(highLoadGroup);
               // 2. Check we can move the high load group to the low load thread group
-              if (lowLoadGroup != highLoadGroup &&
+              if (lowLoadGroup != null && lowLoadGroup != highLoadGroup &&
                   highLoadGroup.getEventProcessor().getLoad() - groupLoad >= targetLoad &&
                   lowLoadGroup.getEventProcessor().getLoad() + groupLoad <= targetLoad) {
                 // 3. merge!
                 if (merge(highLoadGroup, highLoadGroups, highLoadThread, lowLoadGroup)) {
                   rebNum += 1;
+                  highLoadGroups.remove(highLoadGroup);
                 }
 
                 // Prevent lots of groups from being reassigned
