@@ -80,10 +80,10 @@ public final class AffinityRunnable implements Runnable {
       while (!Thread.currentThread().isInterrupted() && !closed) {
         // Pick an active group
         final Group groupInfo = nextGroupSelector.getNextExecutableGroup();
-        LOG.info("Select group: " + groupInfo.getGroupId());
+        //LOG.info("Select group: " + groupInfo.getGroupId());
         if (groupInfo.getEventProcessor() == ep) {
           final long startTime = System.nanoTime();
-          numProcessedEvents = groupInfo.processAllEvent();
+          numProcessedEvents = groupInfo.processAllEvent(1000);
           final long endTime = System.nanoTime();
           groupInfo.getProcessingEvent().addAndGet(numProcessedEvents);
           groupInfo.getProcessingTime().getAndAdd(endTime - startTime);

@@ -41,6 +41,7 @@ public final class BlockingQueueGroupSelector implements NextGroupSelector {
     try {
       while (true) {
         final Group groupInfo = queue.take();
+        LOG.info("Take group " + groupInfo.getGroupId());
         if (groupInfo.setProcessingFromReady()) {
           return groupInfo;
         } else {
