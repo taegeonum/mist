@@ -83,7 +83,7 @@ public final class AffinityRunnable implements Runnable {
 
         if (groupInfo.getEventProcessor() == ep) {
           final long startTime = System.nanoTime();
-          numProcessedEvents = groupInfo.processAllEvent();
+          numProcessedEvents = groupInfo.processAllEvent(1000);
           final long endTime = System.nanoTime();
           groupInfo.getProcessingEvent().addAndGet(numProcessedEvents);
           groupInfo.getProcessingTime().getAndAdd(endTime - startTime);

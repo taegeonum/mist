@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -192,14 +191,14 @@ final class DefaultGroupImpl implements Group {
   }
 
   private long elapsedTime(final long startTime) {
-    return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+    return (System.currentTimeMillis() - startTime);
   }
 
   @Override
   public int processAllEvent(final long timeout) {
     int numProcessedEvent = 0;
     Query query = activeQueryQueue.poll();
-    final long startTime = System.nanoTime();
+    final long startTime = System.currentTimeMillis();
 
     while (query != null) {
 
