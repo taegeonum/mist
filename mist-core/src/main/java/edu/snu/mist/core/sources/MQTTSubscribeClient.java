@@ -143,12 +143,26 @@ public final class MQTTSubscribeClient implements MqttCallback {
         started = true;
       }
 
+      while (true) {
+        try {
+          client.subscribe(topic, 0);
+        } catch (final MqttException e) {
+          LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}...{2}",
+              new Object[] {topic, e, clientId});
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e1) {
+            e1.printStackTrace();
+          }
+        }
+      }
+      /*
       try {
         topics.add(topic);
         client.subscribe(topic, 0);
       } catch (final MqttException e) {
-        LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}",
-            new Object[] {topic, e});
+        LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}...{2}",
+            new Object[] {topic, e, clientId});
         clientId = clientId + "a";
         try {
           client.close();
@@ -160,6 +174,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
         connect();
         resubscribe();
       }
+      */
     }
   }
 
@@ -167,7 +182,8 @@ public final class MQTTSubscribeClient implements MqttCallback {
    * Resubscribe topics.
    */
   private synchronized void resubscribe() {
-    LOG.log(Level.SEVERE, "Resubscribe topics...");
+    LOG.log(Level.SEVERE, "Resubscribe topics for {0}...",
+        new Object[] {clientId});
     try {
       for (final String topic : topics) {
         client.subscribe(topic, 0);
