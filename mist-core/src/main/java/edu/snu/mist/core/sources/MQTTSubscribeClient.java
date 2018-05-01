@@ -146,6 +146,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
       while (true) {
         try {
           client.subscribe(topic, 0);
+          break;
         } catch (final MqttException e) {
           LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}...{2}",
               new Object[] {topic, e, clientId});
