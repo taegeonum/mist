@@ -130,8 +130,8 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
           load = groupLoad;
         }
 
-        if (LOG.isLoggable(Level.FINE)) {
-          LOG.log(Level.FINE,
+        if (LOG.isLoggable(Level.INFO)) {
+          LOG.log(Level.INFO,
               "Group {0}, InputRate: {1}, ProcessingRate: {2}, GroupLoad: {3}",
               new Object[] {group.getGroupId(), inputRate, processingRate, load});
         }

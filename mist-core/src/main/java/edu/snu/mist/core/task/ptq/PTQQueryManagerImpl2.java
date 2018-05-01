@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package edu.snu.mist.core.task.groupaware;
+package edu.snu.mist.core.task.ptq;
 
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.MISTEdge;
@@ -24,6 +24,7 @@ import edu.snu.mist.core.shared.NettySharedResource;
 import edu.snu.mist.core.sources.parameters.PeriodicCheckpointPeriod;
 import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.checkpointing.CheckpointManager;
+import edu.snu.mist.core.task.groupaware.*;
 import edu.snu.mist.core.task.groupaware.parameters.ApplicationIdentifier;
 import edu.snu.mist.core.task.groupaware.parameters.JarFilePath;
 import edu.snu.mist.core.task.merging.ConfigExecutionVertexMap;
@@ -43,7 +44,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,9 +54,9 @@ import java.util.logging.Logger;
  * TODO[MIST-618]: Make GroupAwareGlobalSchedQueryManager use NextGroupSelector to schedule the group.
  */
 @SuppressWarnings("unchecked")
-public final class GroupAwareQueryManagerImpl implements QueryManager {
+public final class PTQQueryManagerImpl2 implements QueryManager {
 
-  private static final Logger LOG = Logger.getLogger(GroupAwareQueryManagerImpl.class.getName());
+  private static final Logger LOG = Logger.getLogger(PTQQueryManagerImpl2.class.getName());
 
   /**
    * Scheduler for periodic watermark emission.
@@ -121,25 +122,25 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
    */
   private final CheckpointManager checkpointManager;
 
-  private final AtomicInteger numQueries = new AtomicInteger(0);
+  private final AtomicLong groupIdCounter = new AtomicLong(0);
   /**
    * Default query manager in MistTask.
    */
   @Inject
-  private GroupAwareQueryManagerImpl(final ScheduledExecutorServiceWrapper schedulerWrapper,
-                                     final QueryInfoStore planStore,
-                                     final EventProcessorManager eventProcessorManager,
-                                     final ConfigDagGenerator configDagGenerator,
-                                     final MQTTResource mqttSharedResource,
-                                     final KafkaSharedResource kafkaSharedResource,
-                                     final NettySharedResource nettySharedResource,
-                                     final DagGenerator dagGenerator,
-                                     final GroupAllocationTableModifier groupAllocationTableModifier,
-                                     final ApplicationMap applicationMap,
-                                     final GroupMap groupMap,
-                                     @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod,
-                                     final GroupIdRequestor groupIdRequestor,
-                                     final CheckpointManager checkpointManager) {
+  private PTQQueryManagerImpl2(final ScheduledExecutorServiceWrapper schedulerWrapper,
+                               final QueryInfoStore planStore,
+                               final EventProcessorManager eventProcessorManager,
+                               final ConfigDagGenerator configDagGenerator,
+                               final MQTTResource mqttSharedResource,
+                               final KafkaSharedResource kafkaSharedResource,
+                               final NettySharedResource nettySharedResource,
+                               final DagGenerator dagGenerator,
+                               final GroupAllocationTableModifier groupAllocationTableModifier,
+                               final ApplicationMap applicationMap,
+                               final GroupMap groupMap,
+                               @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod,
+                               final GroupIdRequestor groupIdRequestor,
+                               final CheckpointManager checkpointManager) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;
     this.eventProcessorManager = eventProcessorManager;
@@ -167,7 +168,6 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
    */
   @Override
   public QueryControlResult create(final AvroDag avroDag) {
-    System.out.println("query: " + numQueries.getAndIncrement());
     return createQueryWithCheckpoint(avroDag, null);
   }
 
@@ -196,17 +196,16 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       }
 
       final ApplicationInfo applicationInfo = applicationMap.get(appId);
-      if (applicationInfo.getGroups().size() == 0) {
-        synchronized (applicationInfo) {
-          if (applicationInfo.getGroups().size() == 0) {
-            createGroup(applicationInfo);
-            // Waiting for group information being added
-            while (applicationInfo.getGroups().isEmpty()) {
-              Thread.sleep(100);
-            }
-          }
-        }
-      }
+      // Create fake group
+      final String groupId = Long.toString(groupIdCounter.getAndIncrement());
+      final JavaConfigurationBuilder bb = Tang.Factory.getTang().newConfigurationBuilder();
+      bb.bindNamedParameter(GroupId.class, groupId);
+      final Injector injector = Tang.Factory.getTang().newInjector(bb.build());
+      injector.bindVolatileInstance(ExecutionDags.class, applicationInfo.getExecutionDags());
+      injector.bindVolatileInstance(QueryIdConfigDagMap.class, applicationInfo.getQueryIdConfigDagMap());
+      injector.bindVolatileInstance(ConfigExecutionVertexMap.class, applicationInfo.getConfigExecutionVertexMap());
+      final Group group = injector.getInstance(Group.class);
+
 
       final DAG<ConfigVertex, MISTEdge> configDag;
       if (checkpointedState == null) {
