@@ -286,6 +286,8 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
                     n += 1;
                 }
+
+                sameGroup.getEventProcessor().addActiveGroup(sameGroup);
               }
 
               rebNum += 1;
