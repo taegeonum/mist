@@ -104,9 +104,12 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
       group.getProcessingTime().addAndGet(-processingEventTime);
 
       if (LOG.isLoggable(Level.INFO)) {
-        LOG.log(Level.INFO,
-            "Group {0}, ProcessingEvent: {1}, IncomingEvent: {2}, ProcessingTime: {3}",
-            new Object[] {group.getGroupId(), processingEvent, incomingEvent, processingEventTime});
+        if (processingEvent == 0 && incomingEvent == 0) {
+          LOG.log(Level.INFO,
+              "Group {0}, ProcessingEvent: {1}, IncomingEvent: {2}, Query: {3}, EP: {4} ProcessingTime: {5}",
+              new Object[]{group.getGroupId(), processingEvent, incomingEvent,
+                  group.getQueries().size(), group.getEventProcessor(), processingEventTime});
+        }
       }
 
       // Calculate group load

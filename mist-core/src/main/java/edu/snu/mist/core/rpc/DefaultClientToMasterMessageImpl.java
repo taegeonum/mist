@@ -27,6 +27,7 @@ import org.apache.avro.AvroRemoteException;
 import javax.inject.Inject;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 /**
@@ -55,6 +56,8 @@ public final class DefaultClientToMasterMessageImpl implements ClientToMasterMes
    * The query Id generator.
    */
   private final QueryIdGenerator queryIdGenerator;
+
+  private final AtomicInteger queryNum = new AtomicInteger(0);
 
   @Inject
   private DefaultClientToMasterMessageImpl(final QueryAllocationManager queryAllocationManager,
