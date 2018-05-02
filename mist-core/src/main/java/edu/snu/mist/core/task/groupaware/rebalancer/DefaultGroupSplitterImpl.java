@@ -241,42 +241,50 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               */
 
               final EventProcessor lowLoadThread = underloadedThreads.poll();
-              Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
 
-              if (sameGroup == null) {
-                // Split! Create a new group!
-                final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
-                jcb.bindNamedParameter(GroupId.class, groupIdRequestor.requestGroupId(highLoadGroup
-                    .getApplicationInfo().getApplicationId()));
-                final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
-
-                injector.bindVolatileInstance(ExecutionDags.class, highLoadGroup.getExecutionDags());
-                injector.bindVolatileInstance(QueryIdConfigDagMap.class, highLoadGroup.getQueryIdConfigDagMap());
-                injector.bindVolatileInstance(ConfigExecutionVertexMap.class,
-                    highLoadGroup.getConfigExecutionVertexMap());
-
-                sameGroup = injector.getInstance(Group.class);
-                sameGroup.setEventProcessor(lowLoadThread);
-                highLoadGroup.getApplicationInfo().addGroup(sameGroup);
-                groupAllocationTable.getValue(lowLoadThread).add(sameGroup);
-                groupMap.putIfAbsent(sameGroup.getGroupId(), sameGroup);
-              }
+              final List<Query> realMoveQueries = new LinkedList<>();
 
               for (final Query movingQuery : sortedQueries) {
                 if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
                     lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
+                  realMoveQueries.add(movingQuery);
+                }
+              }
 
-                  // Move to the existing group!
-                  sameGroup.addQuery(movingQuery);
-                  sameGroup.setLoad(sameGroup.getLoad() + movingQuery.getLoad());
+              if (realMoveQueries.size() > 10) {
+                Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
 
-                  highLoadGroup.delete(movingQuery);
-                  highLoadGroup.setLoad(highLoadGroup.getLoad() - movingQuery.getLoad());
+                if (sameGroup == null) {
+                  // Split! Create a new group!
+                  final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
+                  jcb.bindNamedParameter(GroupId.class, groupIdRequestor.requestGroupId(highLoadGroup
+                      .getApplicationInfo().getApplicationId()));
+                  final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
 
-                  lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
-                  highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
+                  injector.bindVolatileInstance(ExecutionDags.class, highLoadGroup.getExecutionDags());
+                  injector.bindVolatileInstance(QueryIdConfigDagMap.class, highLoadGroup.getQueryIdConfigDagMap());
+                  injector.bindVolatileInstance(ConfigExecutionVertexMap.class,
+                      highLoadGroup.getConfigExecutionVertexMap());
 
-                  n += 1;
+                  sameGroup = injector.getInstance(Group.class);
+                  sameGroup.setEventProcessor(lowLoadThread);
+                  highLoadGroup.getApplicationInfo().addGroup(sameGroup);
+                  groupAllocationTable.getValue(lowLoadThread).add(sameGroup);
+                  groupMap.putIfAbsent(sameGroup.getGroupId(), sameGroup);
+                }
+
+                for (final Query movingQuery : realMoveQueries) {
+                    // Move to the existing group!
+                    sameGroup.addQuery(movingQuery);
+                    sameGroup.setLoad(sameGroup.getLoad() + movingQuery.getLoad());
+
+                    highLoadGroup.delete(movingQuery);
+                    highLoadGroup.setLoad(highLoadGroup.getLoad() - movingQuery.getLoad());
+
+                    lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
+                    highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
+
+                    n += 1;
                 }
               }
 
