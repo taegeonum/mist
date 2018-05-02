@@ -191,7 +191,7 @@ final class DefaultGroupImpl implements Group {
   }
 
   private long elapsedTime(final long startTime) {
-    return (System.currentTimeMillis() - startTime);
+    return System.currentTimeMillis() - startTime;
   }
 
   @Override
