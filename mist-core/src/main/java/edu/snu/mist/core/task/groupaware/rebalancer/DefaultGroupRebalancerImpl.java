@@ -135,7 +135,6 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
     synchronized (highLoadGroup.getQueries()) {
       for (final Query query : highLoadGroup.getQueries()) {
         lowLoadGroup.addQuery(query);
-        highLoadGroup.delete(query);
         incLoad += query.getLoad();
       }
     }
