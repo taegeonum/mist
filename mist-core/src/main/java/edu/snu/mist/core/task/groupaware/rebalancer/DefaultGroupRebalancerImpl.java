@@ -136,7 +136,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                          final PriorityQueue<EventProcessor> underloadedThreads) {
     final double groupLoad = highLoadGroup.getLoad();
 
-    highLoadThread.removeActiveGroup(highLoadGroup);
+    //highLoadThread.removeActiveGroup(highLoadGroup);
     final Collection<Group> lowLoadGroups =
         groupAllocationTable.getValue(lowLoadThread);
 
