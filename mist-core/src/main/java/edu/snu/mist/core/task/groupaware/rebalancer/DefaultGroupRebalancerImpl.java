@@ -143,9 +143,11 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
     lowLoadGroups.add(highLoadGroup);
     highLoadGroup.setEventProcessor(lowLoadThread);
 
+    /*
     while (highLoadThread.removeActiveGroup(highLoadGroup)) {
       // remove all elements
     }
+    */
 
     highLoadGroups.remove(highLoadGroup);
 
@@ -166,27 +168,30 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                         final Group lowLoadGroup) {
     double incLoad = 0.0;
 
+    synchronized (highLoadGroup.getApplicationInfo().getGroups()) {
+      highLoadGroup.getApplicationInfo().getGroups().remove(highLoadGroup);
+      highLoadGroup.getApplicationInfo().numGroups().decrementAndGet();
+    }
+
     synchronized (highLoadGroup.getQueries()) {
       for (final Query query : highLoadGroup.getQueries()) {
         lowLoadGroup.addQuery(query);
         incLoad += query.getLoad();
+        highLoadGroup.delete(query);
       }
     }
 
     // memory barrier
     synchronized (lowLoadGroup.getQueries()) {
 
+      /*
       while (highLoadThread.removeActiveGroup(highLoadGroup)) {
         // remove all elements
       }
+      */
 
       highLoadGroups.remove(highLoadGroup);
       highLoadGroup.setEventProcessor(null);
-    }
-
-    synchronized (highLoadGroup.getApplicationInfo().getGroups()) {
-      highLoadGroup.getApplicationInfo().getGroups().remove(highLoadGroup);
-      highLoadGroup.getApplicationInfo().numGroups().decrementAndGet();
     }
 
     groupMap.remove(highLoadGroup.getGroupId());
@@ -313,7 +318,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                   }
                 }
               } else {
-                /*
+
                 // Merge splitted group!
                 // 1. find the thread that has the lowest load among threads that hold the splitted groups
                 final Group lowLoadGroup = findLowestLoadThreadSplittedGroup(highLoadGroup);
@@ -332,7 +337,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                     break;
                   }
                 }
-                */
+
               }
             }
           }

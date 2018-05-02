@@ -154,9 +154,12 @@ final class DefaultGroupImpl implements Group {
     synchronized (queryList) {
       queryList.remove(query);
     }
+
+    /*
     if (activeQueryQueue.remove(query)) {
       numActiveSubGroup.decrementAndGet();
     }
+    */
 
   }
 
@@ -244,9 +247,11 @@ final class DefaultGroupImpl implements Group {
 
         query.setReady();
       } else {
+        /*
         if (query.getGroup() == this) {
           activeQueryQueue.add(query);
         }
+        */
       }
 
       // Reschedule this group if it still has events to process
