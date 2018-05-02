@@ -177,8 +177,8 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
       for (final Query query : highLoadGroup.getQueries()) {
         lowLoadGroup.addQuery(query);
         incLoad += query.getLoad();
-        highLoadGroup.delete(query);
       }
+      highLoadGroup.getQueries().clear();
     }
 
     // memory barrier
