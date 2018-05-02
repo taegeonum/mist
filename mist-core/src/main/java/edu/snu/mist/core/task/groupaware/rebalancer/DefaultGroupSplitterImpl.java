@@ -246,7 +246,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 }
               }
 
-              if (realMovingQuery.size() > 100) {
+              if (realMovingQuery.size() > 100 && realMovingQuery.size() < sortedQueries.size() / 2) {
                 for (final Query movingQuery : realMovingQuery) {
                   if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
                       lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
@@ -267,8 +267,10 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 sameGroup.getEventProcessor().addActiveGroup(sameGroup);
                 highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
                 rebNum += 1;
-              }
 
+                LOG.log(Level.INFO, "GroupSplit from: {0} to {1}, Splitted Group: {3}, number: {2}",
+                    new Object[]{highLoadThread, lowLoadThread, n, highLoadGroup.toString()});
+              }
 
               // Prevent lots of groups from being reassigned
               if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
@@ -277,8 +279,6 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
               underloadedThreads.add(lowLoadThread);
 
-              LOG.log(Level.INFO, "GroupSplit from: {0} to {1}, Splitted Group: {3}, number: {2}",
-                  new Object[]{highLoadThread, lowLoadThread, n, highLoadGroup.toString()});
             }
 
           }
