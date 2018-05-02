@@ -15,6 +15,7 @@
  */
 package edu.snu.mist.core.task.groupaware.rebalancer;
 
+import edu.snu.mist.core.task.Query;
 import edu.snu.mist.core.task.groupaware.Group;
 import edu.snu.mist.core.task.groupaware.GroupAllocationTable;
 import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.GroupRebalancingPeriod;
@@ -120,6 +121,51 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
     LOG.info(sb.toString());
   }
 
+  private boolean merge(final Group highLoadGroup,
+                        final Collection<Group> highLoadGroups,
+                        final EventProcessor highLoadThread,
+                        final Group lowLoadGroup) {
+    double incLoad = 0.0;
+
+    synchronized (highLoadGroup.getQueries()) {
+      for (final Query query : highLoadGroup.getQueries()) {
+        lowLoadGroup.addQuery(query);
+        incLoad += query.getLoad();
+      }
+    }
+
+    // memory barrier
+    synchronized (lowLoadGroup.getQueries()) {
+
+      while (highLoadThread.removeActiveGroup(highLoadGroup)) {
+        // remove all elements
+      }
+
+      highLoadGroups.remove(highLoadGroup);
+      highLoadGroup.setEventProcessor(null);
+    }
+
+    synchronized (highLoadGroup.getMetaGroup().getGroups()) {
+      highLoadGroup.getMetaGroup().getGroups().remove(highLoadGroup);
+      highLoadGroup.getMetaGroup().numGroups().decrementAndGet();
+    }
+
+    // Update overloaded thread load
+    highLoadThread.setLoad(highLoadThread.getLoad() - incLoad);
+
+    // Update underloaded thread load
+    lowLoadGroup.setLoad(lowLoadGroup.getLoad() + incLoad);
+    lowLoadGroup.getEventProcessor().setLoad(lowLoadGroup.getEventProcessor().getLoad() + incLoad);
+
+
+    // Add one more
+    lowLoadGroup.getEventProcessor().addActiveGroup(lowLoadGroup);
+
+    LOG.log(Level.INFO, "Merge {0} from {1} to {2}",
+        new Object[]{highLoadGroup, highLoadThread, lowLoadGroup.getEventProcessor()});
+    return true;
+  }
+
   private void moveGroup(final Group highLoadGroup,
                          final Collection<Group> highLoadGroups,
                          final EventProcessor highLoadThread,
@@ -150,6 +196,21 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
     //highLoadGroup.setReady();
     lowLoadThread.addActiveGroup(highLoadGroup);
   }
+
+  private Group findLowestLoadThreadSplittedGroup(final Group highLoadGroup) {
+    Group g = null;
+    double threadLoad = Double.MAX_VALUE;
+
+    for (final Group hg : highLoadGroup.getMetaGroup().getGroups()) {
+      if (hg.getEventProcessor().getLoad() < threadLoad) {
+        g = hg;
+        threadLoad = hg.getEventProcessor().getLoad();
+      }
+    }
+
+    return g;
+  }
+
 
   @Override
   public void triggerRebalancing() {
@@ -239,6 +300,25 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                     if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
                       break;
                     }
+                  }
+                }
+              } else {
+                // Merge splitted group!
+                // 1. find the thread that has the lowest load among threads that hold the splitted groups
+                final Group lowLoadGroup = findLowestLoadThreadSplittedGroup(highLoadGroup);
+                // 2. Check we can move the high load group to the low load thread group
+                if (lowLoadGroup != null && lowLoadGroup != highLoadGroup &&
+                    highLoadGroup.getEventProcessor().getLoad() - groupLoad >= targetLoad &&
+                    lowLoadGroup.getEventProcessor().getLoad() + groupLoad <= targetLoad) {
+                  // 3. merge!
+                  if (merge(highLoadGroup, highLoadGroups, highLoadThread, lowLoadGroup)) {
+                    rebNum += 1;
+                    highLoadGroups.remove(highLoadGroup);
+                  }
+
+                  // Prevent lots of groups from being reassigned
+                  if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+                    break;
                   }
                 }
               }

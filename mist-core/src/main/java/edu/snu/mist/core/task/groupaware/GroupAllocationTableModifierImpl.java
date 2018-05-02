@@ -197,7 +197,7 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
 
               // 1. merging first
               if (rebalancing) {
-                groupMerger.groupMerging();
+                //groupMerger.groupMerging();
 
                 // 2. reassignment
                 groupRebalancer.triggerRebalancing();
