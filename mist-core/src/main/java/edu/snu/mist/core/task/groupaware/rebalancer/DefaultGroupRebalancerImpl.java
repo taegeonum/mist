@@ -127,9 +127,15 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                         final Group lowLoadGroup) {
     double incLoad = 0.0;
 
+    synchronized (highLoadGroup.getMetaGroup().getGroups()) {
+      highLoadGroup.getMetaGroup().getGroups().remove(highLoadGroup);
+      highLoadGroup.getMetaGroup().numGroups().decrementAndGet();
+    }
+
     synchronized (highLoadGroup.getQueries()) {
       for (final Query query : highLoadGroup.getQueries()) {
         lowLoadGroup.addQuery(query);
+        highLoadGroup.delete(query);
         incLoad += query.getLoad();
       }
     }
@@ -137,17 +143,13 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
     // memory barrier
     synchronized (lowLoadGroup.getQueries()) {
 
+      /*
       while (highLoadThread.removeActiveGroup(highLoadGroup)) {
         // remove all elements
-      }
+      }*/
 
       highLoadGroups.remove(highLoadGroup);
       highLoadGroup.setEventProcessor(null);
-    }
-
-    synchronized (highLoadGroup.getMetaGroup().getGroups()) {
-      highLoadGroup.getMetaGroup().getGroups().remove(highLoadGroup);
-      highLoadGroup.getMetaGroup().numGroups().decrementAndGet();
     }
 
     // Update overloaded thread load
@@ -173,16 +175,18 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                          final PriorityQueue<EventProcessor> underloadedThreads) {
     final double groupLoad = highLoadGroup.getLoad();
 
-    highLoadThread.removeActiveGroup(highLoadGroup);
+    //highLoadThread.removeActiveGroup(highLoadGroup);
     final Collection<Group> lowLoadGroups =
         groupAllocationTable.getValue(lowLoadThread);
 
     lowLoadGroups.add(highLoadGroup);
     highLoadGroup.setEventProcessor(lowLoadThread);
 
+    /*
     while (highLoadThread.removeActiveGroup(highLoadGroup)) {
       // remove all elements
     }
+    */
 
     highLoadGroups.remove(highLoadGroup);
 
@@ -303,7 +307,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                   }
                 }
               } else {
-                /*
+
                 // Merge splitted group!
                 // 1. find the thread that has the lowest load among threads that hold the splitted groups
                 final Group lowLoadGroup = findLowestLoadThreadSplittedGroup(highLoadGroup);
@@ -322,7 +326,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                     break;
                   }
                 }
-                */
+
               }
             }
           }
