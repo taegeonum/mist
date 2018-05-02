@@ -248,11 +248,13 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               for (final Query movingQuery : sortedQueries) {
                 if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
                     lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
-                  realMoveQueries.add(movingQuery);
+                  if (realMoveQueries.size() > sortedQueries.size() / 2) {
+                    realMoveQueries.add(movingQuery);
+                  }
                 }
               }
 
-              if (realMoveQueries.size() > 100 && realMoveQueries.size() < sortedQueries.size() / 2) {
+              if (realMoveQueries.size() > 100) {
                 Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
 
                 if (sameGroup == null) {
