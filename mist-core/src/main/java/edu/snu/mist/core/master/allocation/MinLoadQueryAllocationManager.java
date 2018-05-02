@@ -61,7 +61,9 @@ public final class MinLoadQueryAllocationManager implements QueryAllocationManag
       }
     }
 
-    assert minTask != null;
+    if (minTask == null) {
+      throw new RuntimeException("MinTask is null");
+    }
     return new IPAddress(minTask, clientToTaskPort);
   }
 
