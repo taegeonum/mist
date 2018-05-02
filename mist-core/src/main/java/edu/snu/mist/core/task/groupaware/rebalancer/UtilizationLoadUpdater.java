@@ -153,9 +153,9 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
 
         final long queryIncomingEvent = incomingE + queryProcessingEvent;
         if (incomingEvent == 0) {
-          query.setLoad(0);
+          query.setLoad(0.0001);
         } else {
-          query.setLoad(load * (queryIncomingEvent / (double) incomingEvent));
+          query.setLoad(Math.max(0.0001, load * (queryIncomingEvent / (double) incomingEvent)));
         }
       }
     }
