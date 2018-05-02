@@ -234,9 +234,8 @@ final class DefaultGroupImpl implements Group {
     final long startTime = System.currentTimeMillis();
 
     while (query != null) {
-
+      numActiveSubGroup.decrementAndGet();
       if (query.setProcessingFromReady()) {
-        numActiveSubGroup.decrementAndGet();
 
         final int processedEvent = query.processAllEvent();
 
