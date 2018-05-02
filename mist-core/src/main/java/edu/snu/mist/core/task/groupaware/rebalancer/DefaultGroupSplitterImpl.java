@@ -219,7 +219,8 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
             // Split if the load of the high load thread could be less than targetLoad
             // when we split the high load group
             int n = 0;
-            if (highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon
+            if (highLoadGroup.getQueries().size() > 300 &&
+                highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon
                 && highLoadGroup.size() > 1) {
 
               // Sorting queries
@@ -251,7 +252,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 }
               }
 
-              if (realMoveQueries.size() > 10) {
+              if (realMoveQueries.size() > 100) {
                 Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
 
                 if (sameGroup == null) {
@@ -289,9 +290,9 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
                 sameGroup.getEventProcessor().addActiveGroup(sameGroup);
                 highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
+                rebNum += 1;
               }
 
-              rebNum += 1;
               // Prevent lots of groups from being reassigned
               if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
                 break;
