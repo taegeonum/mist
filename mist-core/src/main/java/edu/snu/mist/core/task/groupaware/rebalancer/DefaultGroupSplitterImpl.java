@@ -294,6 +294,9 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 sameGroup.getEventProcessor().addActiveGroup(sameGroup);
                 highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
                 rebNum += 1;
+
+                LOG.log(Level.INFO, "GroupSplit from: {0} to {1}, Splitted Group: {3}, number: {2}",
+                    new Object[]{highLoadThread, lowLoadThread, n, highLoadGroup.toString()});
               }
 
               // Prevent lots of groups from being reassigned
@@ -303,8 +306,6 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
               underloadedThreads.add(lowLoadThread);
 
-              LOG.log(Level.INFO, "GroupSplit from: {0} to {1}, Splitted Group: {3}, number: {2}",
-                  new Object[]{highLoadThread, lowLoadThread, n, highLoadGroup.toString()});
             }
 
           }
