@@ -224,19 +224,6 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               */
 
               final EventProcessor lowLoadThread = underloadedThreads.poll();
-              Group sameGroup = hasSameGroup(highLoadGroup, lowLoadThread);
-
-              if (sameGroup == null) {
-                // Split! Create a new group!
-                final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
-                jcb.bindNamedParameter(GroupId.class, highLoadGroup.getGroupId());
-                final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
-                sameGroup = injector.getInstance(Group.class);
-                sameGroup.setEventProcessor(lowLoadThread);
-                highLoadGroup.getMetaGroup().addGroup(sameGroup);
-                groupAllocationTable.getValue(lowLoadThread).add(sameGroup);
-              }
-
               final List<Query> realMovingQuery = new LinkedList<>();
 
               for (final Query movingQuery : sortedQueries) {
@@ -250,6 +237,20 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               }
 
               if (realMovingQuery.size() > 100) {
+                Group sameGroup = hasSameGroup(highLoadGroup, lowLoadThread);
+
+                if (sameGroup == null) {
+                  // Split! Create a new group!
+                  final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
+                  jcb.bindNamedParameter(GroupId.class, highLoadGroup.getGroupId());
+                  final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
+                  sameGroup = injector.getInstance(Group.class);
+                  sameGroup.setEventProcessor(lowLoadThread);
+                  highLoadGroup.getMetaGroup().addGroup(sameGroup);
+                  groupAllocationTable.getValue(lowLoadThread).add(sameGroup);
+                }
+
+
                 for (final Query movingQuery : realMovingQuery) {
                   if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
                       lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
