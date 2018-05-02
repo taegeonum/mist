@@ -202,7 +202,8 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
             // Split if the load of the high load thread could be less than targetLoad
             // when we split the high load group
             int n = 0;
-            if (highLoadGroup.size() > 300 && highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon) {
+            if (highLoadGroup.size() > 300 &&
+                highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon) {
 
               // Sorting queries
               final List<Query> queries = highLoadGroup.getQueries();
