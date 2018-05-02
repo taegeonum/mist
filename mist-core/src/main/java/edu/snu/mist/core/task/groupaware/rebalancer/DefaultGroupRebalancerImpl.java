@@ -303,6 +303,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                   }
                 }
               } else {
+                /*
                 // Merge splitted group!
                 // 1. find the thread that has the lowest load among threads that hold the splitted groups
                 final Group lowLoadGroup = findLowestLoadThreadSplittedGroup(highLoadGroup);
@@ -321,6 +322,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                     break;
                   }
                 }
+                */
               }
             }
           }
