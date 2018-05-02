@@ -255,6 +255,8 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 }
               }
 
+              sameGroup.getEventProcessor().addActiveGroup(sameGroup);
+              highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
               rebNum += 1;
 
               // Prevent lots of groups from being reassigned
