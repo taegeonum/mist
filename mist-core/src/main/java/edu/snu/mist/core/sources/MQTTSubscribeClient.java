@@ -143,21 +143,6 @@ public final class MQTTSubscribeClient implements MqttCallback {
         started = true;
       }
 
-      while (true) {
-        try {
-          client.subscribe(topic, 0);
-          break;
-        } catch (final MqttException e) {
-          LOG.log(Level.SEVERE, "MQTT exception for subscribing {0}... {1}...{2}",
-              new Object[] {topic, e, clientId});
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException e1) {
-            e1.printStackTrace();
-          }
-        }
-      }
-      /*
       try {
         topics.add(topic);
         client.subscribe(topic, 0);
@@ -169,13 +154,19 @@ public final class MQTTSubscribeClient implements MqttCallback {
           client.close();
         } catch (final MqttException e1) {
           // do nothing
+          LOG.log(Level.SEVERE, "Close error {0}... {1}...{2}",
+              new Object[] {topic, e, clientId});
         }
 
+        try {
+          Thread.sleep(2000);
+        } catch (InterruptedException e1) {
+          e1.printStackTrace();
+        }
         // Restart
         connect();
         resubscribe();
       }
-      */
     }
   }
 
