@@ -236,7 +236,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 }
               }
 
-              if (realMovingQuery.size() > 100 && realMovingQuery.size() < sortedQueries.size() / 2) {
+              if (realMovingQuery.size() > 100) {
                 Group sameGroup = hasSameGroup(highLoadGroup, lowLoadThread);
 
                 if (sameGroup == null) {
