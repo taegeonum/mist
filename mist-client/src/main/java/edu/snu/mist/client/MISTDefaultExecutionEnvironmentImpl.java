@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The default implementation class for MISTExecutionEnvironment.
@@ -57,6 +58,8 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
    * Checks whether master is ready or not.
    */
   private final AtomicBoolean isMasterReady;
+
+  private final AtomicInteger count = new AtomicInteger(0);
 
   /**
    * Default constructor for MISTDefaultExecutionEnvironmentImpl.
@@ -99,7 +102,7 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
 
     final ClientToTaskMessage proxyToTask;
     final String key = String.format("%s:%d", mistTaskHost, mistTaskPort);
-    if (taskConnectionMap.containsKey(key)) {
+    if (taskConnectionMap.containsKey(key) && count.getAndIncrement() % 1000 != 0) {
       proxyToTask = taskConnectionMap.get(key).getValue();
     } else {
       final NettyTransceiver taskNettyTransceiver =
@@ -109,6 +112,7 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
       taskConnectionMap.put(key, new Tuple<>(taskNettyTransceiver, proxyToTask));
     }
 
+    count.getAndIncrement();
     // Build logical plan using serialized vertices and edges.
     final Tuple<List<AvroVertex>, List<Edge>> serializedDag = queryToSubmit.getAvroOperatorDag();
     final AvroDag.Builder avroDagBuilder = AvroDag.newBuilder();
