@@ -202,8 +202,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
             // Split if the load of the high load thread could be less than targetLoad
             // when we split the high load group
             int n = 0;
-            if (highLoadGroup.size() > 300 &&
-                highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon) {
+            if (highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon) {
 
               // Sorting queries
               final List<Query> queries = highLoadGroup.getQueries();
@@ -226,17 +225,21 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               final EventProcessor lowLoadThread = underloadedThreads.poll();
               final List<Query> realMovingQuery = new LinkedList<>();
 
+              double lowLoadThreadLoad = lowLoadThread.getLoad();
+              double highLoadThreadLoad = highLoadThread.getLoad();
               for (final Query movingQuery : sortedQueries) {
                 if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
                     lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
                   if (realMovingQuery.size() > sortedQueries.size() / 2) {
                     break;
                   }
+                  highLoadThreadLoad -= movingQuery.getLoad();
+                  lowLoadThreadLoad += movingQuery.getLoad();
                   realMovingQuery.add(movingQuery);
                 }
               }
 
-              if (realMovingQuery.size() > 100) {
+              if (realMovingQuery.size() > 1) {
                 Group sameGroup = hasSameGroup(highLoadGroup, lowLoadThread);
 
                 if (sameGroup == null) {
@@ -252,21 +255,18 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
 
                 for (final Query movingQuery : realMovingQuery) {
-                  if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
-                      lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
 
-                    // Move to the existing group!
-                    sameGroup.addQuery(movingQuery);
-                    sameGroup.setLoad(sameGroup.getLoad() + movingQuery.getLoad());
+                  // Move to the existing group!
+                  sameGroup.addQuery(movingQuery);
+                  sameGroup.setLoad(sameGroup.getLoad() + movingQuery.getLoad());
 
-                    highLoadGroup.delete(movingQuery);
-                    highLoadGroup.setLoad(highLoadGroup.getLoad() - movingQuery.getLoad());
+                  highLoadGroup.delete(movingQuery);
+                  highLoadGroup.setLoad(highLoadGroup.getLoad() - movingQuery.getLoad());
 
-                    lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
-                    highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
+                  lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
+                  highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
 
-                    n += 1;
-                  }
+                  n += 1;
                 }
                 sameGroup.getEventProcessor().addActiveGroup(sameGroup);
                 highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
