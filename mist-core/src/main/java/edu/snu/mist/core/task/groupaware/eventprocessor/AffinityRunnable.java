@@ -56,12 +56,19 @@ public final class AffinityRunnable implements Runnable {
    */
   private long numProcessedEvents;
 
-  public AffinityRunnable(final NextGroupSelector nextGroupSelector) {
+  /**
+   * Processing timeout.
+   */
+  private final long timeout;
+
+  public AffinityRunnable(final NextGroupSelector nextGroupSelector,
+                          final long timeout) {
     this.nextGroupSelector = nextGroupSelector;
     this.load = 0.0;
     this.currProcessedGroupStartTime = System.currentTimeMillis();
     this.numProcessedEvents = 0;
     this.runningIsolatedGroup = false;
+    this.timeout = timeout;
   }
 
   public void close() throws Exception {
@@ -79,7 +86,7 @@ public final class AffinityRunnable implements Runnable {
         // Pick an active group
         final Group groupInfo = nextGroupSelector.getNextExecutableGroup();
         final long startTime = System.nanoTime();
-        numProcessedEvents = groupInfo.processAllEvent();
+        numProcessedEvents = groupInfo.processAllEvent(timeout);
         final long endTime = System.nanoTime();
         groupInfo.getProcessingEvent().addAndGet(numProcessedEvents);
         groupInfo.getProcessingTime().getAndAdd(endTime - startTime);

@@ -15,8 +15,10 @@
  */
 package edu.snu.mist.core.task.groupaware.rebalancer;
 
+import edu.snu.mist.core.task.Query;
 import edu.snu.mist.core.task.groupaware.Group;
 import edu.snu.mist.core.task.groupaware.GroupAllocationTable;
+import edu.snu.mist.core.task.groupaware.GroupMap;
 import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.GroupRebalancingPeriod;
 import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.OverloadedThreshold;
 import edu.snu.mist.core.task.groupaware.parameters.DefaultGroupLoad;
@@ -72,8 +74,14 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
    */
   private final long groupPinningTime;
 
+  /**
+   * The task's group map.
+   */
+  private final GroupMap groupMap;
+
   @Inject
   private DefaultGroupRebalancerImpl(final GroupAllocationTable groupAllocationTable,
+                                     final GroupMap groupMap,
                                      @Parameter(GroupRebalancingPeriod.class) final long rebalancingPeriod,
                                      @Parameter(GroupPinningTime.class) final long groupPinningTime,
                                      @Parameter(DefaultGroupLoad.class) final double defaultGroupLoad,
@@ -84,6 +92,7 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
     this.defaultGroupLoad = defaultGroupLoad;
     this.alpha = alpha;
     this.beta = beta;
+    this.groupMap = groupMap;
     this.groupPinningTime = groupPinningTime;
   }
 
@@ -127,16 +136,18 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                          final PriorityQueue<EventProcessor> underloadedThreads) {
     final double groupLoad = highLoadGroup.getLoad();
 
-    highLoadThread.removeActiveGroup(highLoadGroup);
+    //highLoadThread.removeActiveGroup(highLoadGroup);
     final Collection<Group> lowLoadGroups =
         groupAllocationTable.getValue(lowLoadThread);
 
     lowLoadGroups.add(highLoadGroup);
     highLoadGroup.setEventProcessor(lowLoadThread);
 
+    /*
     while (highLoadThread.removeActiveGroup(highLoadGroup)) {
       // remove all elements
     }
+    */
 
     highLoadGroups.remove(highLoadGroup);
 
@@ -149,6 +160,70 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
 
     //highLoadGroup.setReady();
     lowLoadThread.addActiveGroup(highLoadGroup);
+  }
+
+  private boolean merge(final Group highLoadGroup,
+                        final Collection<Group> highLoadGroups,
+                        final EventProcessor highLoadThread,
+                        final Group lowLoadGroup) {
+    double incLoad = 0.0;
+
+    synchronized (highLoadGroup.getApplicationInfo().getGroups()) {
+      highLoadGroup.getApplicationInfo().getGroups().remove(highLoadGroup);
+      highLoadGroup.getApplicationInfo().numGroups().decrementAndGet();
+    }
+
+    synchronized (highLoadGroup.getQueries()) {
+      for (final Query query : highLoadGroup.getQueries()) {
+        lowLoadGroup.addQuery(query);
+        incLoad += query.getLoad();
+      }
+    }
+
+    // memory barrier
+    synchronized (lowLoadGroup.getQueries()) {
+
+      /*
+      while (highLoadThread.removeActiveGroup(highLoadGroup)) {
+        // remove all elements
+      }
+      */
+
+      highLoadGroups.remove(highLoadGroup);
+      highLoadGroup.setEventProcessor(null);
+    }
+
+    groupMap.remove(highLoadGroup.getGroupId());
+
+    // Update overloaded thread load
+    highLoadThread.setLoad(highLoadThread.getLoad() - incLoad);
+
+    // Update underloaded thread load
+    lowLoadGroup.setLoad(lowLoadGroup.getLoad() + incLoad);
+    lowLoadGroup.getEventProcessor().setLoad(lowLoadGroup.getEventProcessor().getLoad() + incLoad);
+
+
+    // Add one more
+    lowLoadGroup.getEventProcessor().addActiveGroup(lowLoadGroup);
+
+    LOG.log(Level.INFO, "Merge {0} from {1} to {2}",
+        new Object[]{highLoadGroup, highLoadThread, lowLoadGroup.getEventProcessor()});
+    return true;
+  }
+
+
+  private Group findLowestLoadThreadSplittedGroup(final Group highLoadGroup) {
+    Group g = null;
+    double threadLoad = Double.MAX_VALUE;
+
+    for (final Group hg : highLoadGroup.getApplicationInfo().getGroups()) {
+      if (hg.getEventProcessor().getLoad() < threadLoad) {
+        g = hg;
+        threadLoad = hg.getEventProcessor().getLoad();
+      }
+    }
+
+    return g;
   }
 
   @Override
@@ -241,6 +316,27 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                     }
                   }
                 }
+              } else {
+
+                // Merge splitted group!
+                // 1. find the thread that has the lowest load among threads that hold the splitted groups
+                final Group lowLoadGroup = findLowestLoadThreadSplittedGroup(highLoadGroup);
+                // 2. Check we can move the high load group to the low load thread group
+                if (lowLoadGroup != null && lowLoadGroup != highLoadGroup &&
+                    highLoadGroup.getEventProcessor().getLoad() - groupLoad >= targetLoad &&
+                    lowLoadGroup.getEventProcessor().getLoad() + groupLoad <= targetLoad) {
+                  // 3. merge!
+                  if (merge(highLoadGroup, highLoadGroups, highLoadThread, lowLoadGroup)) {
+                    rebNum += 1;
+                    highLoadGroups.remove(highLoadGroup);
+                  }
+
+                  // Prevent lots of groups from being reassigned
+                  if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+                    break;
+                  }
+                }
+
               }
             }
           }

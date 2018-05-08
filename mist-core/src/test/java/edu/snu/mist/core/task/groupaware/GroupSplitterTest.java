@@ -83,7 +83,7 @@ public final class GroupSplitterTest {
    * [0.5 group]: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
    *
    *                     **
-   * t1: [0.35, 0.2, 0.2, 0.3] (1.05) overloaded
+   * t1: [0.3, 0.2, 0.2, 0.3] (1.0) overloaded
    *            **
    * t2: [0.2, 0.5, 0.2] (0.9) overloaded
    * t3: [0.58] (0.58) underloaded
@@ -189,7 +189,7 @@ public final class GroupSplitterTest {
     g9.setEventProcessor(ep4);
     mg9.addGroup(g9);
 
-    final Group g10 = createGroup("g4");
+    final Group g10 = createGroup("g10");
     g10.setLoad(0.05);
     g10.setEventProcessor(ep4);
     mg4.addGroup(g10);
@@ -211,6 +211,7 @@ public final class GroupSplitterTest {
     loadUpdater.update();
     groupSplitter.splitGroup();
 
+    System.out.println(groupAllocationTable);
     // Result
     // After splitting
     // t1: [0.3, 0.2, 0.2, 0.15] (0.85)
