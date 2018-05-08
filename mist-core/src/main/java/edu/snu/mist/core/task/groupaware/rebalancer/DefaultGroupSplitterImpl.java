@@ -228,8 +228,8 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
               double lowLoadThreadLoad = lowLoadThread.getLoad();
               double highLoadThreadLoad = highLoadThread.getLoad();
               for (final Query movingQuery : sortedQueries) {
-                if (highLoadThread.getLoad() - movingQuery.getLoad() >= targetLoad - epsilon &&
-                    lowLoadThread.getLoad() + movingQuery.getLoad() <= targetLoad + epsilon) {
+                if (highLoadThreadLoad - movingQuery.getLoad() >= targetLoad - epsilon &&
+                    lowLoadThreadLoad + movingQuery.getLoad() <= targetLoad + epsilon) {
                   if (realMovingQuery.size() > sortedQueries.size() / 2) {
                     break;
                   }
