@@ -25,28 +25,32 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import javax.inject.Inject;
 import java.io.IOException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * This class publishes MQTT messages to MQTT broker.
  */
 public final class MqttSink implements Sink<MqttMessage> {
   private static final Logger LOG = Logger.getLogger(MqttSink.class.getName());
-
   /**
    * MQTT publisher client.
    */
   private IMqttAsyncClient mqttClient;
 
   /**
+   * MQTT shared resource.
+   */
+  private final MQTTResource resource;
+
+  /**
+   * MQTT broker uri.
+   */
+  private final String brokerURI;
+  /**
    * MQTT topic.
    */
   private final String topic;
-
-  private final MQTTResource resource;
-
-  private final String brokerURI;
 
   @Inject
   public MqttSink(
@@ -64,6 +68,7 @@ public final class MqttSink implements Sink<MqttMessage> {
     // TODO:[MIST-494] Safely close MQTT publisher client.
   }
 
+
   @Override
   public void handle(final MqttMessage input) {
     try {
@@ -78,6 +83,9 @@ public final class MqttSink implements Sink<MqttMessage> {
     }
   }
 
+  /**
+   * Reconnect mqtt sink client.
+   */
   private void reconnect() {
     try {
       mqttClient = resource.getMqttSinkClient(brokerURI, topic);
@@ -93,3 +101,4 @@ public final class MqttSink implements Sink<MqttMessage> {
     }
   }
 }
+

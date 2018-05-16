@@ -36,6 +36,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * This class manages MQTT clients.
@@ -123,6 +124,9 @@ public final class MQTTSharedResource implements MQTTResource {
    */
   private String taskHostname;
 
+  /**
+   * MQTT client id generator.
+   */
   private final AtomicInteger idGen = new AtomicInteger(0);
 
   @Inject
@@ -247,6 +251,7 @@ public final class MQTTSharedResource implements MQTTResource {
         } catch (InterruptedException e1) {
           e1.printStackTrace();
         }
+<<<<<<< HEAD
       }
     }
   }
@@ -255,9 +260,10 @@ public final class MQTTSharedResource implements MQTTResource {
     for (final String candidate: mqttTopic.split("/")) {
       if (candidate.startsWith("group")) {
         return candidate;
+=======
+>>>>>>> de466b0313dbce6aaf8eb07198276d3f00d8161c
       }
     }
-    return null;
   }
 
   /**
