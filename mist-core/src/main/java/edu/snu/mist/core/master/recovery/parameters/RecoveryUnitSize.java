@@ -13,21 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package edu.snu.mist.core.master.recovery.parameters;
 
- /**
-  * This is a skeleton protocol for RPC communication from MistMaster to MistTask.
-  */
-{
-  "namespace": "edu.snu.mist.formats.avro",
-  "protocol": "MasterToTaskMessage",
-  "types": [
-  ],
-  "messages":
-  {
-    "startTaskSideRecovery":
-    {
-      "request": [],
-      "response": "null"
-    }
-  }
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.tang.annotations.NamedParameter;
+
+/**
+ * The granularity of group scheduling.
+ */
+@NamedParameter(doc = "The granularity of group scheduling.", default_value = "5", short_name = "recovery_unit")
+public final class RecoveryUnitSize implements Name<Integer> {
+  // Nothing inside.
 }

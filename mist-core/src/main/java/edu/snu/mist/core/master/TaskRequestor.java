@@ -31,7 +31,13 @@ public interface TaskRequestor {
    * Note: This method is blocking, which means that it blocks the thread until all the tasks are allocated.
    * @return The allocated tasks info.
    */
-  Collection<AllocatedTask> requestTasks(int taskNum);
+  Collection<AllocatedTask> setupTaskAndConn(int taskNum);
+
+  /**
+   * Recover the connection to running tasks. Used in master recovery process.
+   * Note: This method is blocking.
+   */
+  void recoverTaskConn();
 
   /**
    * Notify the allocated task evaluator.

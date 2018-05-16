@@ -13,21 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package edu.snu.mist.core.parameters;
 
- /**
-  * This is a skeleton protocol for RPC communication from MistMaster to MistTask.
-  */
-{
-  "namespace": "edu.snu.mist.formats.avro",
-  "protocol": "MasterToTaskMessage",
-  "types": [
-  ],
-  "messages":
-  {
-    "startTaskSideRecovery":
-    {
-      "request": [],
-      "response": "null"
-    }
-  }
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.tang.annotations.NamedParameter;
+
+/**
+ * Indicates whether the master is in recovery process or not.
+ */
+@NamedParameter(doc = "Indicates whether the master is failed or not.", default_value = "false")
+public final class MasterRecovery implements Name<Boolean> {
 }

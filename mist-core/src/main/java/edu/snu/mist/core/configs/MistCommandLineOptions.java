@@ -15,9 +15,8 @@
  */
 package edu.snu.mist.core.configs;
 
-import edu.snu.mist.core.parameters.NewRatio;
-import edu.snu.mist.core.parameters.ReservedCodeCacheSize;
 import edu.snu.mist.core.master.allocation.parameters.OverloadedTaskThreshold;
+import edu.snu.mist.core.master.recovery.parameters.RecoveryUnitSize;
 import edu.snu.mist.core.parameters.*;
 import edu.snu.mist.core.shared.parameters.MqttSinkClientNumPerBroker;
 import edu.snu.mist.core.shared.parameters.MqttSinkKeepAliveSec;
@@ -28,6 +27,7 @@ import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.DefaultNumEve
 import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.GroupRebalancingPeriod;
 import edu.snu.mist.core.task.groupaware.parameters.GroupPinningTime;
 import edu.snu.mist.core.task.groupaware.parameters.ProcessingTimeout;
+import edu.snu.mist.core.task.recovery.parameters.RecoveryThreadsNum;
 import org.apache.reef.tang.formats.CommandLine;
 
 /**
@@ -69,6 +69,9 @@ public final class MistCommandLineOptions {
         .registerShortNameOfClass(GroupRebalancingPeriod.class)
         .registerShortNameOfClass(PeriodicCheckpointPeriod.class)
         .registerShortNameOfClass(OverloadedTaskThreshold.class)
-        .registerShortNameOfClass(QueryAllocationOption.class);
+        .registerShortNameOfClass(QueryAllocationOption.class)
+        .registerShortNameOfClass(RecoveryThreadsNum.class)
+        .registerShortNameOfClass(RecoverySchedulerOption.class)
+        .registerShortNameOfClass(RecoveryUnitSize.class);
   }
 }

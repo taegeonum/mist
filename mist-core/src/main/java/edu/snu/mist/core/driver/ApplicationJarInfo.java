@@ -13,37 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package edu.snu.mist.core.master;
-
-import edu.snu.mist.formats.avro.MasterToTaskMessage;
+package edu.snu.mist.core.driver;
 
 import javax.inject.Inject;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * The wrapper class which contains proxies to managed tasks.
+ * The mapper class which contains application-jar information
+ * which should be retrieved when the master fails.
  */
-public final class ProxyToTaskMap {
+public final class ApplicationJarInfo {
 
-  private ConcurrentMap<String, MasterToTaskMessage> innerMap;
+  /**
+   * The innermap which actually contains app-jar information.
+   */
+  private final ConcurrentMap<String, List<String>> innerMap;
 
   @Inject
-  private ProxyToTaskMap() {
+  private ApplicationJarInfo() {
     this.innerMap = new ConcurrentHashMap<>();
   }
 
-  public void addNewProxy(final String taskHostname, final MasterToTaskMessage proxyToTask) {
-    innerMap.put(taskHostname, proxyToTask);
+  public boolean put(final String appName,
+                     final List<String> jarPaths) {
+    if (innerMap.containsKey(appName)) {
+      return false;
+    } else {
+      innerMap.put(appName, jarPaths);
+      return true;
+    }
   }
 
-  public Set<Map.Entry<String, MasterToTaskMessage>> entrySet() {
+  public Set<Map.Entry<String, List<String>>> entrySet() {
     return innerMap.entrySet();
   }
 
-  public MasterToTaskMessage get(final String taskHostname) {
-    return innerMap.get(taskHostname);
-  }
 }

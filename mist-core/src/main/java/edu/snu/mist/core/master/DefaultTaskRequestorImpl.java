@@ -21,6 +21,7 @@ import edu.snu.mist.core.parameters.*;
 import edu.snu.mist.core.rpc.AvroUtils;
 import edu.snu.mist.formats.avro.AllocatedTask;
 import edu.snu.mist.formats.avro.MasterToDriverMessage;
+import edu.snu.mist.formats.avro.MasterToTaskMessage;
 import edu.snu.mist.formats.avro.TaskRequest;
 import org.apache.avro.AvroRemoteException;
 import org.apache.reef.tang.Configurations;
@@ -48,9 +49,24 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
   private static final Logger LOG = Logger.getLogger(DefaultTaskRequestorImpl.class.getName());
 
   /**
+   * The taskstats map.
+   */
+  private final TaskStatsMap taskStatsMap;
+
+  /**
+   * The proxy-to-task map.
+   */
+  private final ProxyToTaskMap proxyToTaskMap;
+
+  /**
+   * The master-to-task avro rpc port.
+   */
+  private final int masterToTaskPort;
+
+  /**
    * The avro proxy to MistDriver.
    */
-  private final MasterToDriverMessage proxyToMaster;
+  private final MasterToDriverMessage proxyToDriver;
 
   /**
    * The number of task cores.
@@ -99,15 +115,21 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
 
   @Inject
   private DefaultTaskRequestorImpl(
+      final TaskStatsMap taskStatsMap,
+      final ProxyToTaskMap proxyToTaskMap,
       @Parameter(DriverHostname.class) final String driverHostname,
       @Parameter(MasterToDriverPort.class) final int masterToDriverPort,
+      @Parameter(MasterToTaskPort.class) final int masterToTaskPort,
       @Parameter(NumTaskCores.class) final int numTaskCores,
       @Parameter(TaskMemorySize.class) final int taskMemSize,
       @Parameter(NewRatio.class) final int newRatio,
       @Parameter(ReservedCodeCacheSize.class) final int reservedCodeCacheSize,
       final MistCommonConfigs commonConfigs,
       final MistTaskConfigs taskConfigs) throws IOException {
-    this.proxyToMaster = AvroUtils.createAvroProxy(MasterToDriverMessage.class,
+    this.taskStatsMap = taskStatsMap;
+    this.proxyToTaskMap = proxyToTaskMap;
+    this.masterToTaskPort = masterToTaskPort;
+    this.proxyToDriver = AvroUtils.createAvroProxy(MasterToDriverMessage.class,
         new InetSocketAddress(driverHostname, masterToDriverPort));
     this.numTaskCores = numTaskCores;
     this.taskMemSize = taskMemSize;
@@ -120,7 +142,7 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
   }
 
   @Override
-  public synchronized Collection<AllocatedTask> requestTasks(final int taskNum) {
+  public synchronized Collection<AllocatedTask> setupTaskAndConn(final int taskNum) {
     final TaskRequest.Builder builder = TaskRequest.newBuilder()
         .setTaskNum(taskNum)
         .setTaskCpuNum(numTaskCores)
@@ -130,7 +152,7 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
     final String serializedTaskConfiguration = confSerializer
         .toString(Configurations.merge(commonConfigs.getConfiguration(), taskConfigs.getConfiguration()));
     try {
-      proxyToMaster.requestNewTask(builder
+      proxyToDriver.requestNewTask(builder
           .setSerializedTaskConfiguration(serializedTaskConfiguration)
           .build());
     } catch (final AvroRemoteException e) {
@@ -149,7 +171,44 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
     IntStream.range(0, taskNum)
         .forEach(i -> allocatedTaskList.add(allocatedTaskQueue.remove()));
     assert allocatedTaskQueue.isEmpty();
+
+    for (final AllocatedTask task : allocatedTaskList) {
+      final String taskHostname = task.getTaskHostname();
+      taskStatsMap.addTask(taskHostname);
+      try {
+        final MasterToTaskMessage proxyToTask = AvroUtils.createAvroProxy(MasterToTaskMessage.class,
+            new InetSocketAddress(taskHostname, masterToTaskPort));
+        proxyToTaskMap.addNewProxy(taskHostname, proxyToTask);
+      } catch (final IOException e) {
+        e.printStackTrace();
+        return null;
+      }
+    }
     return allocatedTaskList;
+  }
+
+  @Override
+  public synchronized void recoverTaskConn() {
+
+    final List<String> runningTaskHostnameList;
+    try {
+      runningTaskHostnameList = proxyToDriver.retrieveRunningTaskInfo();
+    } catch (final AvroRemoteException e) {
+      e.printStackTrace();
+      return;
+    }
+
+    for (final String taskHostname : runningTaskHostnameList) {
+      taskStatsMap.addTask(taskHostname);
+      try {
+        final MasterToTaskMessage proxyToTask = AvroUtils.createAvroProxy(MasterToTaskMessage.class,
+            new InetSocketAddress(taskHostname, masterToTaskPort));
+        proxyToTaskMap.addNewProxy(taskHostname, proxyToTask);
+      } catch (final IOException e) {
+        e.printStackTrace();
+        return;
+      }
+    }
   }
 
   @Override

@@ -17,9 +17,7 @@ package edu.snu.mist.core.master;
 
 import edu.snu.mist.core.parameters.*;
 import edu.snu.mist.core.rpc.AvroUtils;
-import edu.snu.mist.formats.avro.ClientToMasterMessage;
-import edu.snu.mist.formats.avro.DriverToMasterMessage;
-import edu.snu.mist.formats.avro.TaskToMasterMessage;
+import edu.snu.mist.formats.avro.*;
 import org.apache.avro.ipc.Server;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Parameter;
@@ -32,11 +30,10 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,39 +61,38 @@ public final class MistMaster implements Task {
 
   private final Server taskToMasterServer;
 
-  private final int masterToTaskPort;
-
   private final int initialTaskNum;
 
   private final TaskRequestor taskRequestor;
 
-  private final TaskStatsMap taskStatsMap;
-
-  private final ProxyToTaskMap proxyToTaskMap;
-
   private final MasterSetupFinished masterSetupFinished;
+
+  private boolean masterRecovery;
+
+  /**
+   * The shared application code manager.
+   */
+  private final ApplicationCodeManager applicationCodeManager;
 
   @Inject
   private MistMaster(
       @Parameter(DriverToMasterPort.class) final int driverToMasterPort,
       @Parameter(ClientToMasterPort.class) final int clientToMasterPort,
       @Parameter(TaskToMasterPort.class) final int taskToMasterPort,
-      @Parameter(MasterToTaskPort.class) final int masterToTaskPort,
       @Parameter(NumTasks.class) final int initialTaskNum,
       final DriverToMasterMessage driverToMasterMessage,
       final ClientToMasterMessage clientToMasterMessage,
       final TaskToMasterMessage taskToMasterMessage,
       final TaskRequestor taskRequestor,
-      final TaskStatsMap taskStatsMap,
-      final ProxyToTaskMap proxyToTaskMap,
-      final MasterSetupFinished masterSetupFinished) {
-    this.masterToTaskPort = masterToTaskPort;
+      final MasterSetupFinished masterSetupFinished,
+      @Parameter(MasterRecovery.class) final boolean masterRecovery,
+      final ApplicationCodeManager applicationCodeManager) throws IOException {
     this.initialTaskNum = initialTaskNum;
     this.taskRequestor = taskRequestor;
-    this.taskStatsMap = taskStatsMap;
-    this.proxyToTaskMap = proxyToTaskMap;
     this.masterSetupFinished = masterSetupFinished;
-    // Initialize countdown latch
+    this.masterRecovery = masterRecovery;
+    this.applicationCodeManager = applicationCodeManager;
+        // Initialize countdown latch
     this.countDownLatch = new CountDownLatch(1);
     // Launch servers for RPC
     this.driverToMasterServer = AvroUtils.createAvroServer(DriverToMasterMessage.class, driverToMasterMessage,
@@ -112,28 +108,27 @@ public final class MistMaster implements Task {
   @Override
   public byte[] call(final byte[] memento) throws Exception {
     LOG.log(Level.INFO, "MistMaster is started");
-    final ExecutorService executorService = Executors.newSingleThreadExecutor();
-    // Start task allocation.
-    final Future<Boolean> isSuccessFuture = executorService.submit(
-        new TaskSetupRequest(
-            taskRequestor,
-            taskStatsMap,
-            proxyToTaskMap,
-            initialTaskNum,
-            masterToTaskPort));
-    if (!isSuccessFuture.get()) {
-      LOG.log(Level.SEVERE, "Mist tasks are not successfully submitted!");
-      return null;
+    // Request the tasks to be allocated firstly.
+    if (!masterRecovery) {
+      final Collection<AllocatedTask> allocatedTasks = taskRequestor.setupTaskAndConn(initialTaskNum);
+      if (allocatedTasks == null) {
+        LOG.log(Level.SEVERE, "Mist tasks are not successfully submitted!");
+        throw new IllegalStateException("Internal Error : No tasks are allocated!");
+      } else {
+        // MistMaster is successfully running now...
+        masterSetupFinished.setFinished();
+      }
     } else {
-      // MistMaster is successfully running now...
+      applicationCodeManager.recoverAppJarInfo();
+      taskRequestor.recoverTaskConn();
       masterSetupFinished.setFinished();
-      this.countDownLatch.await();
-      // MistMaster has been terminated
-      this.driverToMasterServer.close();
-      this.clientToMasterServer.close();
-      this.taskToMasterServer.close();
-      return null;
     }
+    this.countDownLatch.await();
+    // MistMaster has been terminated
+    this.driverToMasterServer.close();
+    this.clientToMasterServer.close();
+    this.taskToMasterServer.close();
+    return null;
   }
 
   public final class MasterCloseHandler implements EventHandler<CloseEvent> {

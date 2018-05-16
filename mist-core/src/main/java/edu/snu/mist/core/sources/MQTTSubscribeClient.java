@@ -173,7 +173,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
   /**
    * Resubscribe topics.
    */
-  private synchronized void resubscribe() {
+  private void resubscribe() {
     LOG.log(Level.SEVERE, "Resubscribe topics for {0}...",
         new Object[] {clientId});
     try {
