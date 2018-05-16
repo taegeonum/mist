@@ -251,17 +251,6 @@ public final class MQTTSharedResource implements MQTTResource {
         } catch (InterruptedException e1) {
           e1.printStackTrace();
         }
-<<<<<<< HEAD
-      }
-    }
-  }
-
-  private String getGroupName(final String mqttTopic) {
-    for (final String candidate: mqttTopic.split("/")) {
-      if (candidate.startsWith("group")) {
-        return candidate;
-=======
->>>>>>> de466b0313dbce6aaf8eb07198276d3f00d8161c
       }
     }
   }
