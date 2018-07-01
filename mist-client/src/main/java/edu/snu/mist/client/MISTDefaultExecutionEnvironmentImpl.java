@@ -114,7 +114,7 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
     } catch (final AvroRuntimeException e) {
       e.printStackTrace();
       querySubmitInfo = null;
-      LOG.info("Exception at querySubmitInfo");
+      LOG.info("Exception at querySubmitInfo of app " + queryToSubmit.getApplicationId());
     }
 
     // Step 2: Contact to the designated task and submit the query

@@ -20,6 +20,7 @@ import edu.snu.mist.core.master.MasterSetupFinished;
 import edu.snu.mist.core.master.lb.allocation.QueryAllocationManager;
 import edu.snu.mist.core.master.QueryIdGenerator;
 import edu.snu.mist.formats.avro.ClientToMasterMessage;
+import edu.snu.mist.formats.avro.IPAddress;
 import edu.snu.mist.formats.avro.JarUploadResult;
 import edu.snu.mist.formats.avro.QuerySubmitInfo;
 import org.apache.avro.AvroRemoteException;
@@ -79,10 +80,16 @@ public final class DefaultClientToMasterMessageImpl implements ClientToMasterMes
 
   @Override
   public QuerySubmitInfo getQuerySubmitInfo(final String appId) {
+    final List<String> jarPath = appCodeManager.getJarPaths(appId);
+    final String queryId = queryIdGenerator.generate();
+    final IPAddress task = queryAllocationManager.getAllocatedTask(appId);
+
+    System.out.println("Get query submit info of " + appId + ", " + jarPath + ", " + queryId + " , " + task);
+    
     return QuerySubmitInfo.newBuilder()
-        .setJarPaths(appCodeManager.getJarPaths(appId))
-        .setQueryId(queryIdGenerator.generate())
-        .setTask(queryAllocationManager.getAllocatedTask(appId))
+        .setJarPaths(jarPath)
+        .setQueryId(queryId)
+        .setTask(task)
         .build();
   }
 }
