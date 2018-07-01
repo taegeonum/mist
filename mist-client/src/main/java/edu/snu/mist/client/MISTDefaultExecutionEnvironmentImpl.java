@@ -23,6 +23,7 @@ import edu.snu.mist.formats.avro.Edge;
 import edu.snu.mist.formats.avro.JarUploadResult;
 import edu.snu.mist.formats.avro.QueryControlResult;
 import edu.snu.mist.formats.avro.QuerySubmitInfo;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.reef.io.Tuple;
@@ -94,15 +95,28 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
 
     // Wait until the master is ready
     while (!isMasterReady.get()) {
-      isMasterReady.set(proxyToMaster.isReady());
       try {
+        isMasterReady.set(proxyToMaster.isReady());
+      } catch (final AvroRuntimeException e) {
+        e.printStackTrace();
+        LOG.info("Exception at isMasterReady");
+      }
+        try {
         Thread.sleep(1000);
       } catch (final InterruptedException e) {
         e.printStackTrace();
       }
     }
     // Step 1: Get a task to submit the query and JAR file paths from MistMaster
-    final QuerySubmitInfo querySubmitInfo = proxyToMaster.getQuerySubmitInfo(queryToSubmit.getApplicationId());
+    QuerySubmitInfo querySubmitInfo;
+    try {
+      querySubmitInfo = proxyToMaster.getQuerySubmitInfo(queryToSubmit.getApplicationId());
+    } catch (final AvroRuntimeException e) {
+      e.printStackTrace();
+      querySubmitInfo = null;
+      LOG.info("Exception at querySubmitInfo");
+    }
+
     // Step 2: Contact to the designated task and submit the query
     final String mistTaskHost = querySubmitInfo.getTask().getHostAddress();
     final int mistTaskPort = querySubmitInfo.getTask().getPort();
@@ -129,6 +143,8 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
         .setAvroVertices(serializedDag.getKey())
         .setEdges(serializedDag.getValue())
         .build();
+
+    try {
     final QueryControlResult queryControlResult = proxyToTask.sendQueries(avroDag);
 
     // Transform QueryControlResult to APIQueryControlResult
@@ -136,7 +152,12 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
         new APIQueryControlResultImpl(queryControlResult.getQueryId(), querySubmitInfo.getTask(),
             queryControlResult.getMsg(), queryControlResult.getIsSuccess());
 
-    return apiQueryControlResult;
+      return apiQueryControlResult;
+    } catch (final AvroRuntimeException e) {
+      e.printStackTrace();
+      LOG.info("Exception at queryControlResult");
+      return null;
+    }
   }
 
   @Override
