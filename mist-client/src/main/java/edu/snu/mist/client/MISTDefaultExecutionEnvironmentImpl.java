@@ -100,6 +100,7 @@ public final class MISTDefaultExecutionEnvironmentImpl implements MISTExecutionE
       } catch (final AvroRuntimeException e) {
         e.printStackTrace();
         LOG.info("Exception at isMasterReady");
+        throw new RuntimeException(e);
       }
         try {
         Thread.sleep(1000);

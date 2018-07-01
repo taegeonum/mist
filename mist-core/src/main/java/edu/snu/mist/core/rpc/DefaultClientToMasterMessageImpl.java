@@ -80,16 +80,21 @@ public final class DefaultClientToMasterMessageImpl implements ClientToMasterMes
 
   @Override
   public QuerySubmitInfo getQuerySubmitInfo(final String appId) {
-    final List<String> jarPath = appCodeManager.getJarPaths(appId);
-    final String queryId = queryIdGenerator.generate();
-    final IPAddress task = queryAllocationManager.getAllocatedTask(appId);
+    System.out.println("Get " + appId);
+    try {
+      final List<String> jarPath = appCodeManager.getJarPaths(appId);
+      final String queryId = queryIdGenerator.generate();
+      final IPAddress task = queryAllocationManager.getAllocatedTask(appId);
 
-    System.out.println("Get query submit info of " + appId + ", " + jarPath + ", " + queryId + " , " + task);
-    
-    return QuerySubmitInfo.newBuilder()
-        .setJarPaths(jarPath)
-        .setQueryId(queryId)
-        .setTask(task)
-        .build();
+      return QuerySubmitInfo.newBuilder()
+          .setJarPaths(jarPath)
+          .setQueryId(queryId)
+          .setTask(task)
+          .build();
+    } catch (final Exception e) {
+      e.printStackTrace();
+      System.out.println("Error at getting " + appId + ".." + e);
+      throw new RuntimeException(e);
+    }
   }
 }
