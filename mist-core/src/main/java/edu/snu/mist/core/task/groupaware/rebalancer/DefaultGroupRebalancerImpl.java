@@ -260,6 +260,12 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
                 return -1;
               } else if (!o1.isSplited() && o2.isSplited()) {
                 return 1;
+              } else if (o1.isSplited() && o2.isSplited()) {
+                if (o1.getLoad() < o2.getLoad()) {
+                  return -1;
+                } else {
+                  return 1;
+                }
               } else {
                 if (o1.getLoad() < o2.getLoad()) {
                   return -1;
