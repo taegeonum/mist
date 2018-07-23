@@ -99,12 +99,11 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
       final long processingEventTime = group.getProcessingTime().get();
       group.getProcessingTime().addAndGet(-processingEventTime);
 
-      if (LOG.isLoggable(Level.INFO)) {
+      if (processingEventTime < incomingEvent) {
         LOG.log(Level.INFO,
-            "Group {0}, ProcessingEvent: {1}, IncomingEvent: {2}, ProcessingTime: {3}",
-            new Object[] {group.getGroupId(), processingEvent, incomingEvent, processingEventTime});
+                "Group {0}, ProcessingEvent: {1}, IncomingEvent: {2}, ProcessingTime: {3}",
+                new Object[] {group.getGroupId(), processingEvent, incomingEvent, processingEventTime});
       }
-
       // Calculate group load
       // No processed. This thread is overloaded!
       // Just use the previous load
@@ -120,7 +119,7 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
         final double processingRate = (processingEvent * NS_UNIT) / (double) processingEventTime;
 
         if (processingEvent == 0 || processingRate == 0) {
-          load = Math.min(1.5, (1 * NS_UNIT) / (double) processingEventTime);
+          load = 1 * NS_UNIT / (double) processingEventTime;
         } else {
           final double groupLoad = Math.min(1.5, inputRate / processingRate);
           load = groupLoad;
