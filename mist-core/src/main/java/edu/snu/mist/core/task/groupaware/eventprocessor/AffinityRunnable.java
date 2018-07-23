@@ -87,8 +87,9 @@ public final class AffinityRunnable implements Runnable {
           final long endTime = System.nanoTime();
           groupInfo.getProcessingEvent().addAndGet(numProcessedEvents);
           groupInfo.getProcessingTime().getAndAdd(endTime - startTime);
+
+          groupInfo.setReady();
         }
-        groupInfo.setReady();
       }
     } catch (final Exception e) {
       e.printStackTrace();
