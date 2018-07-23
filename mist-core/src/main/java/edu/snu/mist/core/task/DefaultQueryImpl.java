@@ -20,7 +20,9 @@ import edu.snu.mist.core.task.groupaware.Group;
 import javax.inject.Inject;
 import java.util.Iterator;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -73,6 +75,7 @@ public final class DefaultQueryImpl implements Query {
    */
   private final AtomicReference<QueryStatus> queryStatus = new AtomicReference<>(QueryStatus.READY);
 
+  private final ConcurrentMap<SourceOutputEmitter, Integer> sourceMap = new ConcurrentHashMap<>();
   @Inject
   public DefaultQueryImpl(final String identifier) {
     this.id = identifier;
@@ -92,6 +95,10 @@ public final class DefaultQueryImpl implements Query {
    */
   @Override
   public void insert(final SourceOutputEmitter sourceOutputEmitter) {
+    if (!sourceMap.containsKey(sourceOutputEmitter)) {
+      sourceMap.put(sourceOutputEmitter, 1);
+    }
+
     activeSourceQueue.add(sourceOutputEmitter);
     final int n = numActiveSources.getAndIncrement();
     if (n == 0) {
@@ -129,12 +136,14 @@ public final class DefaultQueryImpl implements Query {
   @Override
   public long numberOfRemainingEvents() {
     int sum = 0;
-    final Iterator<SourceOutputEmitter> iterator = activeSourceQueue.iterator();
+    //final Iterator<SourceOutputEmitter> iterator = activeSourceQueue.iterator();
+    final Iterator<SourceOutputEmitter> iterator = sourceMap.keySet().iterator();
     while (iterator.hasNext()) {
       final SourceOutputEmitter sourceOutputEmitter = iterator.next();
       sum += sourceOutputEmitter.numberOfEvents();
     }
     return sum;
+
   }
 
   @Override

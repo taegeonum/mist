@@ -247,7 +247,8 @@ final class DefaultGroupImpl implements Group {
   @Override
   public long numberOfRemainingEvents() {
     int sum = 0;
-    final Iterator<Query> iterator = activeQueryQueue.iterator();
+    //final Iterator<Query> iterator = activeQueryQueue.iterator();
+    final Iterator<Query> iterator = queryList.iterator();
     while (iterator.hasNext()) {
       final Query query = iterator.next();
       sum += query.numberOfRemainingEvents();
