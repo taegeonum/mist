@@ -119,7 +119,7 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
         final double processingRate = (processingEvent * NS_UNIT) / (double) processingEventTime;
 
         if (processingEvent == 0 || processingRate == 0) {
-          load = 1 * NS_UNIT / (double) processingEventTime;
+          load = group.getLoad();
         } else {
           final double groupLoad = Math.min(1.5, inputRate / processingRate);
           load = groupLoad;

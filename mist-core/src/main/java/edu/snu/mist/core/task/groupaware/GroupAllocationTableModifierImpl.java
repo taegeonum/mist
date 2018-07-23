@@ -200,10 +200,10 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
                 //groupMerger.groupMerging();
 
                 // 2. reassignment
-                groupRebalancer.triggerRebalancing();
+                //groupRebalancer.triggerRebalancing();
 
                 // 3. split groups
-                groupSplitter.splitGroup();
+                //groupSplitter.splitGroup();
               }
               break;
             case ISOLATION:
