@@ -21,7 +21,10 @@ import edu.snu.mist.core.task.QueryManager;
 import edu.snu.mist.core.task.codeshare.ClassLoaderProvider;
 import edu.snu.mist.core.task.codeshare.NoSharingURLClassLoaderProvider;
 import edu.snu.mist.core.task.codeshare.URLClassLoaderProvider;
+import edu.snu.mist.core.task.groupaware.GroupAllocationTableModifier;
 import edu.snu.mist.core.task.groupaware.GroupAwareQueryManagerImpl;
+import edu.snu.mist.core.task.ptq.PTQGroupAllocationTableModifier;
+import edu.snu.mist.core.task.ptq.PTQQueryManagerImpl;
 import edu.snu.mist.core.task.threadbased.ThreadBasedQueryManagerImpl;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.JavaConfigurationBuilder;
@@ -35,14 +38,17 @@ public final class EvalConfigs {
     private final String executionModel;
     private final boolean codeSharing;
     private final boolean networkSharing;
+    private final boolean merging;
 
     @Inject
     private EvalConfigs(@Parameter(ExecutionModel.class) final String executionModel,
                         @Parameter(CodeSharing.class) final boolean codeSharing,
-                        @Parameter(NetworkSharing.class) final boolean networkSharing) {
+                        @Parameter(NetworkSharing.class) final boolean networkSharing,
+                        @Parameter(Merging.class) final boolean merging) {
         this.executionModel = executionModel;
         this.codeSharing = codeSharing;
         this.networkSharing = networkSharing;
+        this.merging = merging;
     }
 
     private Class<? extends QueryManager> getQueryManagerClass() {
@@ -50,6 +56,8 @@ public final class EvalConfigs {
             return GroupAwareQueryManagerImpl.class;
         } else if (executionModel.equals("tpq")) {
             return ThreadBasedQueryManagerImpl.class;
+        } else if (executionModel.equals("ptq")) {
+          return PTQQueryManagerImpl.class;
         } else {
             throw new RuntimeException("Invalid execution model: " + executionModel);
         }
@@ -64,17 +72,23 @@ public final class EvalConfigs {
     }
 
     public Configuration getConfig() {
+        System.out.println("Execution model: " + executionModel);
+
         final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
         jcb.bindNamedParameter(ExecutionModel.class, executionModel);
         jcb.bindNamedParameter(CodeSharing.class, String.valueOf(codeSharing));
         jcb.bindNamedParameter(NetworkSharing.class, String.valueOf(networkSharing));
-
+        jcb.bindNamedParameter(Merging.class, String.valueOf(merging));
 
         jcb.bindImplementation(QueryManager.class, getQueryManagerClass());
         jcb.bindImplementation(ClassLoaderProvider.class, getClassLoaderProviderClass());
 
         if (!networkSharing) {
             jcb.bindImplementation(MQTTResource.class, MQTTNoSharedResource.class);
+        }
+
+        if (executionModel.equals("ptq")) {
+            jcb.bindImplementation(GroupAllocationTableModifier.class, PTQGroupAllocationTableModifier.class);
         }
 
         return jcb.build();
@@ -84,6 +98,7 @@ public final class EvalConfigs {
         return commandLine
                 .registerShortNameOfClass(ExecutionModel.class)
                 .registerShortNameOfClass(CodeSharing.class)
-                .registerShortNameOfClass(NetworkSharing.class);
+                .registerShortNameOfClass(NetworkSharing.class)
+                .registerShortNameOfClass(Merging.class);
     }
 }

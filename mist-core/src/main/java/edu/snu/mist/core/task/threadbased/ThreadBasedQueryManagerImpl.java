@@ -88,6 +88,7 @@ public final class ThreadBasedQueryManagerImpl implements QueryManager {
     this.planStore = planStore;
     this.threads = new ConcurrentSet<>();
     this.configDagGenerator = configDagGenerator;
+    LOG.info("Thread based start");
   }
 
 
