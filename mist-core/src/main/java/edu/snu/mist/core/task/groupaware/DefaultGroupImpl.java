@@ -152,6 +152,9 @@ final class DefaultGroupImpl implements Group {
   public void delete(final Query query) {
     //eventProcessor.get().removeActiveGroup(this);
     synchronized (queryList) {
+      if (activeQueryQueue.remove(query)) {
+        numActiveSubGroup.decrementAndGet();
+      }
       queryList.remove(query);
     }
   }
@@ -225,16 +228,10 @@ final class DefaultGroupImpl implements Group {
     int numProcessedEvent = 0;
     final long startTime = System.currentTimeMillis();
 
-    int remain = numActiveSubGroup.get();
-
-    while (remain > 0) {
-      remain = numActiveSubGroup.decrementAndGet();
-      final Query query = activeQueryQueue.poll();
-
-      if (query == null) {
-        throw new RuntimeException("Query should not be null");
-      }
-
+    int processedQueries = 0;
+    Query query = activeQueryQueue.poll();
+    while (query != null) {
+      processedQueries += 1;
       if (query.setProcessingFromReady()) {
 
         final int processedEvent = query.processAllEvent();
@@ -249,12 +246,17 @@ final class DefaultGroupImpl implements Group {
 
       // Reschedule this group if it still has events to process
       if (elapsedTime(startTime) > timeout) {
-        final EventProcessor ep = eventProcessor.get();
-        // This could be null when the group merger merges the group
-        if (ep != null) {
-          ep.addActiveGroup(this);
-        }
         break;
+      }
+
+      query = activeQueryQueue.poll();
+    }
+
+    int remain = numActiveSubGroup.addAndGet(-processedQueries);
+    if (remain > 0) {
+      final EventProcessor ep = eventProcessor.get();
+      if (ep != null) {
+        ep.addActiveGroup(this);
       }
     }
 
