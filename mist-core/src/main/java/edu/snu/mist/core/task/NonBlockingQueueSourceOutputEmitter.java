@@ -56,7 +56,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   private final AtomicBoolean scheduled = new AtomicBoolean(false);
 
-
   public NonBlockingQueueSourceOutputEmitter(final Map<ExecutionVertex, MISTEdge> nextOperators,
                                              final Query query) {
     this.queue = new ConcurrentLinkedQueue<>();
@@ -67,13 +66,13 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   @Override
   public int processAllEvent() {
+    final int n = numEvents.get();
     scheduled.set(false);
 
-    
     int numProcessedEvent = 0;
     MistEvent event = queue.poll();
 
-    while (event != null) {
+    while (numProcessedEvent < n) {
       for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
         process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
       }
@@ -81,7 +80,12 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       event = queue.poll();
     }
 
-    numEvents.addAndGet(-numProcessedEvent);
+    final int remain = numEvents.addAndGet(-numProcessedEvent);
+    if (remain > 0 && !scheduled.get()) {
+      if (scheduled.compareAndSet(false, true)) {
+        query.insert(this);
+      }
+    }
 
     return numProcessedEvent;
   }

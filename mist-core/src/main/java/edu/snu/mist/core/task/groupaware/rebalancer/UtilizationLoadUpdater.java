@@ -70,8 +70,10 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
   public void update() {
     startTime = System.currentTimeMillis();
     final List<EventProcessor> eventProcessors = groupAllocationTable.getKeys();
+    int i = 0;
     for (final EventProcessor eventProcessor : eventProcessors) {
-      updateGroupAndThreadLoad(eventProcessor, groupAllocationTable.getValue(eventProcessor));
+      updateGroupAndThreadLoad(eventProcessor, groupAllocationTable.getValue(eventProcessor), i);
+      i += 1;
     }
     previousUpdateTime = startTime;
     LOG.info(groupAllocationTable.toString());
@@ -84,7 +86,8 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
    * @param groups assigned groups
    */
   private void updateGroupAndThreadLoad(final EventProcessor eventProcessor,
-                                        final Collection<Group> groups) {
+                                        final Collection<Group> groups,
+                                        final int index) {
     //boolean isOverloaded = false;
 
     double eventProcessorLoad = 0.0;
@@ -138,11 +141,11 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
       group.setLoad(load);
 
 
-      if (LOG.isLoggable(Level.INFO)) {
+      if (index == 0 && LOG.isLoggable(Level.INFO)) {
         LOG.log(Level.INFO,
-                "EP {0}, Group {1}, ProcessingEvent: {2}, IncomingEvent: {3}, " +
+                "EP {0}, Group {1}, Sched: {2}, ProcessingEvent: {2}, IncomingEvent: {3}, " +
                         "ProcessingTime: {4}, GLoad: {5}, EPLoad: {6}",
-                new Object[] {eventProcessor, group.getGroupId(), processingEvent, incomingEvent,
+                new Object[] {eventProcessor, group.getGroupId(), group.isScheduled(), processingEvent, incomingEvent,
                         processingEventTime, load, eventProcessorLoad});
       }
 

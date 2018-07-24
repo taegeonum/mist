@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -58,7 +59,7 @@ final class DefaultGroupImpl implements Group {
 
   private final Queue<Query> activeQueryQueue;
 
-  //private final AtomicInteger numActiveSubGroup = new AtomicInteger(0);
+  private final AtomicInteger numActiveSubGroup = new AtomicInteger(0);
 
   private final AtomicReference<EventProcessor> eventProcessor;
 
@@ -125,6 +126,7 @@ final class DefaultGroupImpl implements Group {
       query.setGroup(this);
       queryList.add(query);
       activeQueryQueue.add(query);
+      numActiveSubGroup.getAndIncrement();
 
       if (!scheduled.get()) {
         if (scheduled.compareAndSet(false, true)) {
@@ -142,7 +144,7 @@ final class DefaultGroupImpl implements Group {
   @Override
   public void insert(final Query query) {
     activeQueryQueue.add(query);
-    //final int n = numActiveSubGroup.getAndIncrement();
+    final int n = numActiveSubGroup.getAndIncrement();
     //System.out.println("Event is added at Group, # group: " + n);
 
     if (!scheduled.get()) {
@@ -156,7 +158,9 @@ final class DefaultGroupImpl implements Group {
   public void delete(final Query query) {
     //eventProcessor.get().removeActiveGroup(this);
     synchronized (queryList) {
-      activeQueryQueue.remove(query);
+      if (activeQueryQueue.remove(query)) {
+        numActiveSubGroup.getAndDecrement();
+      }
       queryList.remove(query);
     }
   }
@@ -227,14 +231,17 @@ final class DefaultGroupImpl implements Group {
 
   @Override
   public int processAllEvent(final long timeout) {
+    final int n = numActiveSubGroup.get();
     int numProcessedEvent = 0;
     final long startTime = System.currentTimeMillis();
 
     scheduled.set(false);
 
     Query query = activeQueryQueue.poll();
+    int numProcessedQueries = 0;
+    while (numProcessedQueries < n) {
+      numProcessedQueries += 1;
 
-    while (query != null) {
       if (query.setProcessingFromReady()) {
 
         final int processedEvent = query.processAllEvent();
@@ -249,18 +256,21 @@ final class DefaultGroupImpl implements Group {
 
       // Reschedule this group if it still has events to process
       if (elapsedTime(startTime) > timeout) {
-        if (!scheduled.get()) {
-          if (scheduled.compareAndSet(false, true)) {
-            final EventProcessor ep = eventProcessor.get();
-            if (ep != null) {
-              ep.addActiveGroup(this);
-            }
-          }
-        }
+        LOG.info("Preemption!! " + groupId);
         break;
       }
 
       query = activeQueryQueue.poll();
+    }
+
+    int remain = numActiveSubGroup.addAndGet(-numProcessedQueries);
+    if (remain > 0 && !scheduled.get()) {
+      if (scheduled.compareAndSet(false, true)) {
+        final EventProcessor ep = eventProcessor.get();
+        if (ep != null) {
+          ep.addActiveGroup(this);
+        }
+      }
     }
 
     return numProcessedEvent;
@@ -295,6 +305,11 @@ final class DefaultGroupImpl implements Group {
   @Override
   public int size() {
     return queryList.size();
+  }
+
+  @Override
+  public boolean isScheduled() {
+    return scheduled.get();
   }
 
   @Override

@@ -154,6 +154,8 @@ public interface Group extends AutoCloseable {
    */
   int size();
 
+  boolean isScheduled();
+
   /**
    * Get the ExecutionDags of this group.
    */

@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -46,7 +47,7 @@ public final class DefaultQueryImpl implements Query {
    * The number of active sources.
    * We do not use activeSourceQueue.size() because it is O(n) operation.
    */
-  //private final AtomicInteger numActiveSources;
+  private final AtomicInteger numActiveSources;
 
   /**
    * Query id.
@@ -80,7 +81,7 @@ public final class DefaultQueryImpl implements Query {
     this.id = identifier;
     this.activeSourceQueue = new ConcurrentLinkedQueue<>();
     this.queryLoad = 0;
-    //this.numActiveSources = new AtomicInteger();
+    this.numActiveSources = new AtomicInteger();
     this.group = new AtomicReference<>();
   }
 
@@ -95,6 +96,7 @@ public final class DefaultQueryImpl implements Query {
   @Override
   public void insert(final SourceOutputEmitter sourceOutputEmitter) {
     activeSourceQueue.add(sourceOutputEmitter);
+    numActiveSources.getAndIncrement();
 
     if (!scheduled.get()) {
       if (scheduled.compareAndSet(false, true)) {
@@ -110,6 +112,7 @@ public final class DefaultQueryImpl implements Query {
   public void delete(final SourceOutputEmitter sourceOutputEmitter) {
     if (activeSourceQueue.remove(sourceOutputEmitter)) {
       group.get().delete(this);
+      numActiveSources.getAndDecrement();
     }
   }
 
@@ -119,15 +122,25 @@ public final class DefaultQueryImpl implements Query {
    */
   @Override
   public int processAllEvent() {
+    final int n = numActiveSources.get();
     scheduled.set(false);
 
     int numProcessedEvent = 0;
     SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
 
+    int numProcessedSources = 0;
 
-    while (sourceOutputEmitter != null) {
+    while (numProcessedSources < n) {
       numProcessedEvent += sourceOutputEmitter.processAllEvent();
       sourceOutputEmitter = activeSourceQueue.poll();
+      numProcessedSources += 1;
+    }
+
+    final int remain = numActiveSources.addAndGet(-n);
+    if (remain > 0 && !scheduled.get()) {
+      if (scheduled.compareAndSet(false, true)) {
+        group.get().insert(this);
+      }
     }
 
     return numProcessedEvent;
