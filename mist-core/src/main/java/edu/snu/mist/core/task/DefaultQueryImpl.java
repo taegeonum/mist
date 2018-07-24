@@ -117,12 +117,19 @@ public final class DefaultQueryImpl implements Query {
   @Override
   public int processAllEvent() {
     int numProcessedEvent = 0;
-    SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
-    while (sourceOutputEmitter != null) {
-      numActiveSources.decrementAndGet();
+    int remain = numActiveSources.get();
+    while (remain > 0) {
+      remain = numActiveSources.decrementAndGet();
+      final SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
+
+      if (sourceOutputEmitter == null) {
+        throw new RuntimeException("SourceOutputemitter should not be null");
+      }
+
       numProcessedEvent += sourceOutputEmitter.processAllEvent();
-      sourceOutputEmitter = activeSourceQueue.poll();
+
     }
+
     return numProcessedEvent;
   }
 

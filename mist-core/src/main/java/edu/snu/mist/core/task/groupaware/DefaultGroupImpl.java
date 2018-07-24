@@ -223,20 +223,26 @@ final class DefaultGroupImpl implements Group {
   @Override
   public int processAllEvent(final long timeout) {
     int numProcessedEvent = 0;
-    Query query = activeQueryQueue.poll();
     final long startTime = System.currentTimeMillis();
 
-    while (query != null) {
+    int remain = numActiveSubGroup.get();
 
-      numActiveSubGroup.decrementAndGet();
+    while (remain > 0) {
+      remain = numActiveSubGroup.decrementAndGet();
+      final Query query = activeQueryQueue.poll();
+
+      if (query == null) {
+        throw new RuntimeException("Query should not be null");
+      }
+
       if (query.setProcessingFromReady()) {
 
         final int processedEvent = query.processAllEvent();
 
         if (processedEvent != 0) {
           query.getProcessingEvent().getAndAdd(processedEvent);
+          numProcessedEvent += processedEvent;
         }
-        numProcessedEvent += processedEvent;
 
         query.setReady();
       }
@@ -250,8 +256,6 @@ final class DefaultGroupImpl implements Group {
         }
         break;
       }
-
-      query = activeQueryQueue.poll();
     }
 
     return numProcessedEvent;
