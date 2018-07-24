@@ -200,40 +200,36 @@ final class DefaultGroupImpl implements Group {
   @Override
   public int processAllEvent(final long timeout) {
     int numProcessedEvent = 0;
-    Query query = activeQueryQueue.poll();
     final long startTime = System.currentTimeMillis();
 
-    while (query != null) {
-      numActiveSubGroup.decrementAndGet();
+    int remain = numActiveSubGroup.get();
+    while (remain > 0) {
+      remain = numActiveSubGroup.decrementAndGet();
+      final Query query = activeQueryQueue.poll();
+      if (query == null) {
+        throw new RuntimeException("Query should not be null in group " + groupId);
+      }
 
       if (query.setProcessingFromReady()) {
         final int processedEvent = query.processAllEvent();
 
         if (processedEvent != 0) {
           query.getProcessingEvent().getAndAdd(processedEvent);
+          numProcessedEvent += processedEvent;
         }
-        numProcessedEvent += processedEvent;
 
         query.setReady();
-      } else {
-        /*
-        if (query.getGroup() == this) {
-          activeQueryQueue.add(query);
-        }
-        */
-      }
 
-      // Reschedule this group if it still has events to process
-      if (elapsedTime(startTime) > timeout) {
-        final EventProcessor ep = eventProcessor.get();
-        // This could be null when the group merger merges the group
-        if (ep != null) {
-          ep.addActiveGroup(this);
+        // Reschedule this group if it still has events to process
+        if (elapsedTime(startTime) > timeout) {
+          final EventProcessor ep = eventProcessor.get();
+          // This could be null when the group merger merges the group
+          if (ep != null) {
+            ep.addActiveGroup(this);
+          }
+          break;
         }
-        break;
       }
-
-      query = activeQueryQueue.poll();
     }
 
     return numProcessedEvent;
