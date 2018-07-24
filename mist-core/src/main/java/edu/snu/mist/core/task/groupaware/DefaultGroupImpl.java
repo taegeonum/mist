@@ -231,7 +231,7 @@ final class DefaultGroupImpl implements Group {
     final long startTime = System.currentTimeMillis();
 
     scheduled.set(false);
-    
+
     Query query = activeQueryQueue.poll();
 
     while (query != null) {

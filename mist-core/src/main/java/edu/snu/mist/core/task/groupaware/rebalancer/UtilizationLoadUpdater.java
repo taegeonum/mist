@@ -92,21 +92,19 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
 
     final List<Group> skipGroups = new LinkedList<>();
 
+    long totalRemainingEvents = 0;
+
     for (final Group group : groups) {
       double load = 0.0;
 
       final List<Query> queries = group.getQueries();
       final long processingEvent = group.getProcessingEvent().get();
       group.getProcessingEvent().addAndGet(-processingEvent);
-      final long incomingEvent = processingEvent + group.numberOfRemainingEvents();
+      final long remains = group.numberOfRemainingEvents();
+      final long incomingEvent = processingEvent + remains;
+      totalRemainingEvents += remains;
       final long processingEventTime = group.getProcessingTime().get();
       group.getProcessingTime().addAndGet(-processingEventTime);
-
-      if (LOG.isLoggable(Level.FINE)) {
-        LOG.log(Level.FINE,
-            "Group {0}, ProcessingEvent: {1}, IncomingEvent: {2}, ProcessingTime: {3}",
-            new Object[] {group.getGroupId(), processingEvent, incomingEvent, processingEventTime});
-      }
 
       // Calculate group load
       // No processed. This thread is overloaded!
@@ -138,6 +136,16 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
 
       eventProcessorLoad += load;
       group.setLoad(load);
+
+
+      if (LOG.isLoggable(Level.INFO)) {
+        LOG.log(Level.INFO,
+                "EP {0}, Group {1}, ProcessingEvent: {2}, IncomingEvent: {3}, " +
+                        "ProcessingTime: {4}, GLoad: {5}, EPLoad: {6}",
+                new Object[] {group.getGroupId(), processingEvent, incomingEvent,
+                        processingEventTime, load, eventProcessorLoad});
+      }
+
 
       // Calculate query load based on the group load!
       for (final Query query : queries) {
