@@ -167,6 +167,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
     this.checkpointPeriod = checkpointPeriod;
     this.checkpointManager = checkpointManager;
     this.groupIdRequestor = groupIdRequestor;
+    LOG.info("PTQ start");
   }
 
   /**
