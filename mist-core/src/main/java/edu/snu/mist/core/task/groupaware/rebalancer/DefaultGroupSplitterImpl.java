@@ -241,7 +241,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
                 }
               }
 
-              if (movingQueries.size() > 1) {
+              if (movingQueries.size() > possibleMovingQueries.size() / 4) {
                 Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
 
                 if (sameGroup == null) {
@@ -276,6 +276,7 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
 
                   n += 1;
                 }
+
                 sameGroup.getEventProcessor().addActiveGroup(sameGroup);
                 highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
                 rebNum += 1;
