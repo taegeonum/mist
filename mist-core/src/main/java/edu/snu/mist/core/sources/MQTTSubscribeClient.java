@@ -109,6 +109,12 @@ public final class MQTTSubscribeClient implements MqttCallback {
   private void connect() {
     while (true) {
       try {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+
         client = new MqttAsyncClient(brokerURI, clientId);
         final MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setKeepAliveInterval(mqttSourceKeepAliveSec);
@@ -169,6 +175,12 @@ public final class MQTTSubscribeClient implements MqttCallback {
    * Resubscribe topics.
    */
   private void resubscribe() {
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     LOG.log(Level.SEVERE, "Resubscribe topics for {0}...",
         new Object[] {clientId});
     try {
