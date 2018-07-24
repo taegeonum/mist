@@ -127,7 +127,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
 
   private final boolean codeSharing;
 
-  private final AtomicInteger appIdGenerator = new AtomicInteger();
+  private final AtomicInteger groupIdGenerator = new AtomicInteger();
 
   private final boolean mergingEnabled;
 
@@ -194,17 +194,20 @@ public final class PTQQueryManagerImpl implements QueryManager {
       // Create the submitted query
 
       // Update app information
-      //final String appId = avroDag.getAppId();
-      final String appId = String.valueOf(appIdGenerator.getAndIncrement());
+      final String appId = avroDag.getAppId();
 
       if (LOG.isLoggable(Level.FINE)) {
         LOG.log(Level.FINE, "Create Query [aid: {0}, qid: {2}]",
                 new Object[]{appId, queryId});
       }
 
-      createApplication(appId, avroDag.getJarPaths());
+      if (!applicationMap.containsKey(appId)) {
+        createApplication(appId, avroDag.getJarPaths());
+      }
+
       final ApplicationInfo applicationInfo = applicationMap.get(appId);
-      createGroup(applicationInfo);
+      final Group group = createGroup(applicationInfo);
+      applicationInfo.addGroup(group);
 
       final DAG<ConfigVertex, MISTEdge> configDag;
       if (checkpointedState == null) {
@@ -213,7 +216,13 @@ public final class PTQQueryManagerImpl implements QueryManager {
         configDag = configDagGenerator.generateWithCheckpointedStates(avroDag, checkpointedState);
       }
 
-      final Query query = createAndStartQuery(queryId, applicationInfo, configDag);
+      final Query query = new DefaultQueryImpl(queryId);
+      groupAllocationTableModifier.addEvent(new WritingEvent(WritingEvent.EventType.QUERY_ADD,
+              new Tuple<>(group, query)));
+
+      // Start the submitted dag
+      applicationInfo.getQueryStarter().start(queryId, query, configDag, applicationInfo.getJarFilePath());
+
       // Waiting for the query is assigned to a group
       while (query.getGroup() == null) {
         Thread.sleep(100);
@@ -238,12 +247,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
                                    final ApplicationInfo applicationInfo,
                                    final DAG<ConfigVertex, MISTEdge> configDag)
           throws ClassNotFoundException, IOException {
-    final Query query = new DefaultQueryImpl(queryId);
-    groupAllocationTableModifier.addEvent(new WritingEvent(WritingEvent.EventType.QUERY_ADD,
-            new Tuple<>(applicationInfo, query)));
-    // Start the submitted dag
-    applicationInfo.getQueryStarter().start(queryId, query, configDag, applicationInfo.getJarFilePath());
-    return query;
+    return null;
   }
 
   @Override
@@ -291,7 +295,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
   public Group createGroup(final ApplicationInfo applicationInfo) throws InjectionException {
     final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
 
-    final String groupId = applicationInfo.getApplicationId();
+    final String groupId = String.valueOf(groupIdGenerator.getAndIncrement());
     jcb.bindNamedParameter(GroupId.class, groupId);
 
     final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());

@@ -24,7 +24,6 @@ import org.apache.reef.io.Tuple;
 
 import javax.inject.Inject;
 import java.util.Collection;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -143,24 +142,19 @@ public final class PTQGroupAllocationTableModifier implements GroupAllocationTab
           switch (event.getEventType()) {
             case GROUP_ADD: {
               final Tuple<ApplicationInfo, Group> tuple = (Tuple<ApplicationInfo, Group>) event.getValue();
-              final ApplicationInfo applicationInfo = tuple.getKey();
               final Group group = tuple.getValue();
-              applicationInfo.addGroup(group);
               groupAssigner.assignGroup(group);
               break;
             }
             case QUERY_ADD: {
-              final Tuple<ApplicationInfo, Query> tuple = (Tuple<ApplicationInfo, Query>) event.getValue();
-              final ApplicationInfo applicationInfo = tuple.getKey();
+              final Tuple<Group, Query> tuple = (Tuple<Group, Query>) event.getValue();
+              final Group group = tuple.getKey();
               final Query query = tuple.getValue();
               // TODO: pluggable
               // Find minimum load group
-              final List<Group> groups = applicationInfo.getGroups();
-              final int index = random.nextInt(groups.size());
-              final Group minGroup = groups.get(index);
 
-              query.setGroup(minGroup);
-              minGroup.addQuery(query);
+              query.setGroup(group);
+              group.addQuery(query);
               break;
             }
             case GROUP_REMOVE: {
