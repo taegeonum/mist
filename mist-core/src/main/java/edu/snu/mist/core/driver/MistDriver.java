@@ -245,7 +245,8 @@ public final class MistDriver {
         final String taskId = taskSubmitInfo.getTaskId();
         final JVMProcess jvmProcess = jvmProcessFactory.newEvaluatorProcess()
             .addOption("-XX:NewRatio=" + taskSubmitInfo.getNewRatio())
-            .addOption("-XX:ReservedCodeCacheSize=" + taskSubmitInfo.getReservedCodeCacheSize() + "m");
+            .addOption("-XX:ReservedCodeCacheSize=" + taskSubmitInfo.getReservedCodeCacheSize() + "m")
+            .addOption("-XX:+UseNUMA");
         LOG.log(Level.INFO, "A MistTask allocated to {0}", descriptor.getNodeDescriptor().getName());
         allocatedEvaluator.setProcess(jvmProcess);
         allocatedEvaluator.submitContext(ContextConfiguration.CONF
