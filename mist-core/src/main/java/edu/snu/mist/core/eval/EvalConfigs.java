@@ -23,6 +23,8 @@ import edu.snu.mist.core.task.codeshare.NoSharingURLClassLoaderProvider;
 import edu.snu.mist.core.task.codeshare.URLClassLoaderProvider;
 import edu.snu.mist.core.task.groupaware.GroupAllocationTableModifier;
 import edu.snu.mist.core.task.groupaware.GroupAwareQueryManagerImpl;
+import edu.snu.mist.core.task.groupaware.groupassigner.GroupAssigner;
+import edu.snu.mist.core.task.groupaware.groupassigner.RoundRobinGroupAssignerImpl;
 import edu.snu.mist.core.task.ptq.PTQGroupAllocationTableModifier;
 import edu.snu.mist.core.task.ptq.PTQQueryManagerImpl;
 import edu.snu.mist.core.task.threadbased.ThreadBasedQueryManagerImpl;
@@ -89,6 +91,7 @@ public final class EvalConfigs {
 
         if (executionModel.equals("ptq")) {
             jcb.bindImplementation(GroupAllocationTableModifier.class, PTQGroupAllocationTableModifier.class);
+            jcb.bindImplementation(GroupAssigner.class, RoundRobinGroupAssignerImpl.class);
         }
 
         return jcb.build();
