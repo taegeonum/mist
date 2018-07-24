@@ -21,7 +21,7 @@ import javax.inject.Inject;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -46,7 +46,7 @@ public final class DefaultQueryImpl implements Query {
    * The number of active sources.
    * We do not use activeSourceQueue.size() because it is O(n) operation.
    */
-  private final AtomicInteger numActiveSources;
+  //private final AtomicInteger numActiveSources;
 
   /**
    * Query id.
@@ -73,12 +73,14 @@ public final class DefaultQueryImpl implements Query {
    */
   private final AtomicReference<QueryStatus> queryStatus = new AtomicReference<>(QueryStatus.READY);
 
+  private final AtomicBoolean scheduled = new AtomicBoolean(false);
+
   @Inject
   public DefaultQueryImpl(final String identifier) {
     this.id = identifier;
     this.activeSourceQueue = new ConcurrentLinkedQueue<>();
     this.queryLoad = 0;
-    this.numActiveSources = new AtomicInteger();
+    //this.numActiveSources = new AtomicInteger();
     this.group = new AtomicReference<>();
   }
 
@@ -93,9 +95,11 @@ public final class DefaultQueryImpl implements Query {
   @Override
   public void insert(final SourceOutputEmitter sourceOutputEmitter) {
     activeSourceQueue.add(sourceOutputEmitter);
-    final int n = numActiveSources.getAndIncrement();
-    if (n == 0) {
-      group.get().insert(this);
+
+    if (!scheduled.get()) {
+      if (scheduled.compareAndSet(false, true)) {
+        group.get().insert(this);
+      }
     }
   }
 
@@ -105,7 +109,6 @@ public final class DefaultQueryImpl implements Query {
   @Override
   public void delete(final SourceOutputEmitter sourceOutputEmitter) {
     if (activeSourceQueue.remove(sourceOutputEmitter)) {
-      numActiveSources.decrementAndGet();
       group.get().delete(this);
     }
   }
@@ -119,17 +122,11 @@ public final class DefaultQueryImpl implements Query {
     int numProcessedEvent = 0;
     SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
 
-    int processedSources = 0;
+    scheduled.set(false);
 
     while (sourceOutputEmitter != null) {
-      processedSources += 1;
       numProcessedEvent += sourceOutputEmitter.processAllEvent();
       sourceOutputEmitter = activeSourceQueue.poll();
-    }
-
-    int remain = numActiveSources.addAndGet(-processedSources);
-    if (remain > 0) {
-      group.get().insert(this);
     }
 
     return numProcessedEvent;
@@ -139,6 +136,7 @@ public final class DefaultQueryImpl implements Query {
   public long numberOfRemainingEvents() {
     int sum = 0;
     final Iterator<SourceOutputEmitter> iterator = activeSourceQueue.iterator();
+
     while (iterator.hasNext()) {
       final SourceOutputEmitter sourceOutputEmitter = iterator.next();
       sum += sourceOutputEmitter.numberOfEvents();

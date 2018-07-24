@@ -32,7 +32,7 @@ import org.apache.reef.tang.annotations.Parameter;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -58,7 +58,7 @@ final class DefaultGroupImpl implements Group {
 
   private final Queue<Query> activeQueryQueue;
 
-  private final AtomicInteger numActiveSubGroup = new AtomicInteger(0);
+  //private final AtomicInteger numActiveSubGroup = new AtomicInteger(0);
 
   private final AtomicReference<EventProcessor> eventProcessor;
 
@@ -97,6 +97,8 @@ final class DefaultGroupImpl implements Group {
    */
   private final ConfigExecutionVertexMap configExecutionVertexMap;
 
+  private final AtomicBoolean scheduled = new AtomicBoolean(false);
+
   @Inject
   private DefaultGroupImpl(@Parameter(GroupId.class) final String groupId,
                            final ExecutionDags executionDags,
@@ -124,10 +126,10 @@ final class DefaultGroupImpl implements Group {
       queryList.add(query);
       activeQueryQueue.add(query);
 
-      final int n = numActiveSubGroup.getAndIncrement();
-
-      if (n == 0) {
-        eventProcessor.get().addActiveGroup(this);
+      if (!scheduled.get()) {
+        if (scheduled.compareAndSet(false, true)) {
+          eventProcessor.get().addActiveGroup(this);
+        }
       }
     }
   }
@@ -140,11 +142,13 @@ final class DefaultGroupImpl implements Group {
   @Override
   public void insert(final Query query) {
     activeQueryQueue.add(query);
-    final int n = numActiveSubGroup.getAndIncrement();
+    //final int n = numActiveSubGroup.getAndIncrement();
     //System.out.println("Event is added at Group, # group: " + n);
 
-    if (n == 0) {
-      eventProcessor.get().addActiveGroup(this);
+    if (!scheduled.get()) {
+      if (scheduled.compareAndSet(false, true)) {
+        eventProcessor.get().addActiveGroup(this);
+      }
     }
   }
 
@@ -152,9 +156,7 @@ final class DefaultGroupImpl implements Group {
   public void delete(final Query query) {
     //eventProcessor.get().removeActiveGroup(this);
     synchronized (queryList) {
-      if (activeQueryQueue.remove(query)) {
-        numActiveSubGroup.decrementAndGet();
-      }
+      activeQueryQueue.remove(query);
       queryList.remove(query);
     }
   }
@@ -211,7 +213,7 @@ final class DefaultGroupImpl implements Group {
 
   @Override
   public boolean isActive() {
-    return numActiveSubGroup.get() > 0;
+    return scheduled.get();
   }
 
   @Override
@@ -228,10 +230,10 @@ final class DefaultGroupImpl implements Group {
     int numProcessedEvent = 0;
     final long startTime = System.currentTimeMillis();
 
-    int processedQueries = 0;
+    scheduled.set(false);
     Query query = activeQueryQueue.poll();
+
     while (query != null) {
-      processedQueries += 1;
       if (query.setProcessingFromReady()) {
 
         final int processedEvent = query.processAllEvent();
@@ -246,18 +248,18 @@ final class DefaultGroupImpl implements Group {
 
       // Reschedule this group if it still has events to process
       if (elapsedTime(startTime) > timeout) {
+        if (!scheduled.get()) {
+          if (scheduled.compareAndSet(false, true)) {
+            final EventProcessor ep = eventProcessor.get();
+            if (ep != null) {
+              ep.addActiveGroup(this);
+            }
+          }
+        }
         break;
       }
 
       query = activeQueryQueue.poll();
-    }
-
-    int remain = numActiveSubGroup.addAndGet(-processedQueries);
-    if (remain > 0) {
-      final EventProcessor ep = eventProcessor.get();
-      if (ep != null) {
-        ep.addActiveGroup(this);
-      }
     }
 
     return numProcessedEvent;
