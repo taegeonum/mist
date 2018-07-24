@@ -72,6 +72,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
         process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
       }
       numProcessedEvent += 1;
+      event = queue.poll();
     }
 
     int remain = numEvents.addAndGet(-numProcessedEvent);
