@@ -237,30 +237,32 @@ final class DefaultGroupImpl implements Group {
 
     scheduled.set(false);
 
-    Query query = activeQueryQueue.poll();
     int numProcessedQueries = 0;
     while (numProcessedQueries < n) {
-      numProcessedQueries += 1;
-
-      if (query.setProcessingFromReady()) {
-
-        final int processedEvent = query.processAllEvent();
-
-        if (processedEvent != 0) {
-          query.getProcessingEvent().getAndAdd(processedEvent);
-          numProcessedEvent += processedEvent;
+        final Query query = activeQueryQueue.poll();
+        if (query == null) {
+            break;
         }
 
-        query.setReady();
-      }
+        numProcessedQueries += 1;
 
-      // Reschedule this group if it still has events to process
-      if (elapsedTime(startTime) > timeout) {
-        LOG.info("Preemption!! " + groupId);
-        break;
-      }
+        if (query.setProcessingFromReady()) {
 
-      query = activeQueryQueue.poll();
+            final int processedEvent = query.processAllEvent();
+
+            if (processedEvent != 0) {
+                query.getProcessingEvent().getAndAdd(processedEvent);
+                numProcessedEvent += processedEvent;
+            }
+
+            query.setReady();
+        }
+
+        // Reschedule this group if it still has events to process
+        if (elapsedTime(startTime) > timeout) {
+            LOG.info("Preemption!! " + groupId);
+            break;
+        }
     }
 
     int remain = numActiveSubGroup.addAndGet(-numProcessedQueries);

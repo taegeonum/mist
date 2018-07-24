@@ -126,17 +126,18 @@ public final class DefaultQueryImpl implements Query {
     scheduled.set(false);
 
     int numProcessedEvent = 0;
-    SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
 
     int numProcessedSources = 0;
-
     while (numProcessedSources < n) {
+      final SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
+      if (sourceOutputEmitter == null) {
+        break;
+      }
       numProcessedEvent += sourceOutputEmitter.processAllEvent();
-      sourceOutputEmitter = activeSourceQueue.poll();
       numProcessedSources += 1;
     }
 
-    final int remain = numActiveSources.addAndGet(-n);
+    final int remain = numActiveSources.addAndGet(-numProcessedSources);
     if (remain > 0 && !scheduled.get()) {
       if (scheduled.compareAndSet(false, true)) {
         group.get().insert(this);

@@ -70,14 +70,17 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
     scheduled.set(false);
 
     int numProcessedEvent = 0;
-    MistEvent event = queue.poll();
 
     while (numProcessedEvent < n) {
+      final MistEvent event = queue.poll();
+      if (event == null) {
+        break;
+      }
+
       for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
         process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
       }
       numProcessedEvent += 1;
-      event = queue.poll();
     }
 
     final int remain = numEvents.addAndGet(-numProcessedEvent);
