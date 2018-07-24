@@ -102,6 +102,9 @@ public final class DefaultGroupCheckpointStore implements GroupCheckpointStore {
 
   @Override
   public boolean saveQuery(final Group group, final AvroDag avroDag) {
+
+    return true;
+    /*
     final String queryId = avroDag.getQueryId();
     try {
       // Store dag to a separate file.
@@ -130,6 +133,7 @@ public final class DefaultGroupCheckpointStore implements GroupCheckpointStore {
       e.printStackTrace();
       return false;
     }
+    */
   }
 
   @Override
