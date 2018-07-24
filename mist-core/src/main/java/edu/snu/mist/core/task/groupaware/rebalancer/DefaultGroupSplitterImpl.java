@@ -27,6 +27,7 @@ import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.GroupRebalanc
 import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.OverloadedThreshold;
 import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.UnderloadedThreshold;
 import edu.snu.mist.core.task.groupaware.parameters.DefaultGroupLoad;
+import edu.snu.mist.core.task.groupaware.parameters.GroupPinningTime;
 import edu.snu.mist.core.task.merging.ConfigExecutionVertexMap;
 import edu.snu.mist.core.task.merging.QueryIdConfigDagMap;
 import org.apache.reef.tang.Injector;
@@ -85,16 +86,20 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
    */
   private final GroupIdRequestor groupIdRequestor;
 
+  private final long groupPinningTime;
+
   @Inject
   private DefaultGroupSplitterImpl(final GroupAllocationTable groupAllocationTable,
                                    @Parameter(GroupRebalancingPeriod.class) final long rebalancingPeriod,
                                    @Parameter(DefaultGroupLoad.class) final double defaultGroupLoad,
                                    @Parameter(OverloadedThreshold.class) final double beta,
                                    @Parameter(UnderloadedThreshold.class) final double alpha,
+                                   @Parameter(GroupPinningTime.class) final long groupPinningTime,
                                    final GroupMap groupMap,
                                    final GroupIdRequestor groupIdRequestor) {
     this.groupAllocationTable = groupAllocationTable;
     this.rebalancingPeriod = rebalancingPeriod;
+    this.groupPinningTime = groupPinningTime;
     this.defaultGroupLoad = defaultGroupLoad;
     this.alpha = alpha;
     this.beta = beta;
@@ -216,81 +221,86 @@ public final class DefaultGroupSplitterImpl implements GroupSplitter {
           });
 
           for (final Group highLoadGroup : sortedHighLoadGroups) {
-            // Split if the load of the high load thread could be less than targetLoad
-            // when we split the high load group
-            int n = 0;
-            if (highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon) {
-              final List<Query> queries = highLoadGroup.getQueries();
-              final List<Query> possibleMovingQueries = new ArrayList<>(queries);
+            if (System.currentTimeMillis() - highLoadGroup.getLatestMovedTime()
+                    >= TimeUnit.SECONDS.toMillis(groupPinningTime)) {
 
-              final EventProcessor lowLoadThread = underloadedThreads.poll();
-              final List<Query> movingQueries = new LinkedList<>();
+              // Split if the load of the high load thread could be less than targetLoad
+              // when we split the high load group
+              int n = 0;
+              if (highLoadThread.getLoad() - highLoadGroup.getLoad() < targetLoad + epsilon) {
+                final List<Query> queries = highLoadGroup.getQueries();
+                final List<Query> possibleMovingQueries = new ArrayList<>(queries);
 
-              // Move at most half of the queries in the group
-              double lowLoadThreadLoad = lowLoadThread.getLoad();
-              double highLoadThreadLoad = highLoadThread.getLoad();
-              for (final Query possibleMovingQuery : possibleMovingQueries) {
-                if (highLoadThreadLoad - possibleMovingQuery.getLoad() >= targetLoad - epsilon &&
-                    lowLoadThreadLoad + possibleMovingQuery.getLoad() <= targetLoad + epsilon) {
-                  if (movingQueries.size() > possibleMovingQueries.size() / 2) {
-                    break;
+                final EventProcessor lowLoadThread = underloadedThreads.poll();
+                final List<Query> movingQueries = new LinkedList<>();
+
+                // Move at most half of the queries in the group
+                double lowLoadThreadLoad = lowLoadThread.getLoad();
+                double highLoadThreadLoad = highLoadThread.getLoad();
+                for (final Query possibleMovingQuery : possibleMovingQueries) {
+                  if (highLoadThreadLoad - possibleMovingQuery.getLoad() >= targetLoad - epsilon &&
+                      lowLoadThreadLoad + possibleMovingQuery.getLoad() <= targetLoad + epsilon) {
+                    if (movingQueries.size() > possibleMovingQueries.size() / 2) {
+                      break;
+                    }
+                    highLoadThreadLoad -= possibleMovingQuery.getLoad();
+                    lowLoadThreadLoad += possibleMovingQuery.getLoad();
+                    movingQueries.add(possibleMovingQuery);
                   }
-                  highLoadThreadLoad -= possibleMovingQuery.getLoad();
-                  lowLoadThreadLoad += possibleMovingQuery.getLoad();
-                  movingQueries.add(possibleMovingQuery);
-                }
-              }
-
-              if (movingQueries.size() > possibleMovingQueries.size() / 4) {
-                Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
-
-                if (sameGroup == null) {
-                  // Split! Create a new group!
-                  final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
-                  jcb.bindNamedParameter(GroupId.class, groupIdRequestor.requestGroupId(highLoadGroup
-                      .getApplicationInfo().getApplicationId()));
-                  final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
-
-                  injector.bindVolatileInstance(ExecutionDags.class, highLoadGroup.getExecutionDags());
-                  injector.bindVolatileInstance(QueryIdConfigDagMap.class, highLoadGroup.getQueryIdConfigDagMap());
-                  injector.bindVolatileInstance(ConfigExecutionVertexMap.class,
-                      highLoadGroup.getConfigExecutionVertexMap());
-
-                  sameGroup = injector.getInstance(Group.class);
-                  sameGroup.setEventProcessor(lowLoadThread);
-                  highLoadGroup.getApplicationInfo().addGroup(sameGroup);
-                  groupAllocationTable.getValue(lowLoadThread).add(sameGroup);
-                  groupMap.putIfAbsent(sameGroup.getGroupId(), sameGroup);
                 }
 
-                for (final Query movingQuery : movingQueries) {
-                  // Move to the existing group!
-                  sameGroup.addQuery(movingQuery);
-                  sameGroup.setLoad(sameGroup.getLoad() + movingQuery.getLoad());
+                if (movingQueries.size() > possibleMovingQueries.size() / 4) {
+                  Group sameGroup = hasGroupOfSameApp(highLoadGroup, lowLoadThread);
 
-                  highLoadGroup.delete(movingQuery);
-                  highLoadGroup.setLoad(highLoadGroup.getLoad() - movingQuery.getLoad());
+                  if (sameGroup == null) {
+                    // Split! Create a new group!
+                    final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
+                    jcb.bindNamedParameter(GroupId.class, groupIdRequestor.requestGroupId(highLoadGroup
+                        .getApplicationInfo().getApplicationId()));
+                    final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
 
-                  lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
-                  highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
+                    injector.bindVolatileInstance(ExecutionDags.class, highLoadGroup.getExecutionDags());
+                    injector.bindVolatileInstance(QueryIdConfigDagMap.class, highLoadGroup.getQueryIdConfigDagMap());
+                    injector.bindVolatileInstance(ConfigExecutionVertexMap.class,
+                        highLoadGroup.getConfigExecutionVertexMap());
 
-                  n += 1;
+                    sameGroup = injector.getInstance(Group.class);
+                    sameGroup.setEventProcessor(lowLoadThread);
+                    highLoadGroup.getApplicationInfo().addGroup(sameGroup);
+                    groupAllocationTable.getValue(lowLoadThread).add(sameGroup);
+                    groupMap.putIfAbsent(sameGroup.getGroupId(), sameGroup);
+                  }
+
+                  for (final Query movingQuery : movingQueries) {
+                    // Move to the existing group!
+                    sameGroup.addQuery(movingQuery);
+                    sameGroup.setLoad(sameGroup.getLoad() + movingQuery.getLoad());
+
+                    highLoadGroup.delete(movingQuery);
+                    highLoadGroup.setLoad(highLoadGroup.getLoad() - movingQuery.getLoad());
+
+                    lowLoadThread.setLoad(lowLoadThread.getLoad() + movingQuery.getLoad());
+                    highLoadThread.setLoad(highLoadThread.getLoad() - movingQuery.getLoad());
+
+                    n += 1;
+                  }
+
+                  sameGroup.setLatestMovedTime(System.currentTimeMillis());
+                  sameGroup.getEventProcessor().addActiveGroup(sameGroup);
+                  highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
+                  rebNum += 1;
+
+                  LOG.log(Level.INFO, "GroupSplit from: {0} to {1}, Splitted Group: {3}, number: {2}",
+                      new Object[]{highLoadThread, lowLoadThread, n, highLoadGroup.toString()});
                 }
 
-                sameGroup.getEventProcessor().addActiveGroup(sameGroup);
-                highLoadGroup.getEventProcessor().addActiveGroup(highLoadGroup);
-                rebNum += 1;
+                // Prevent lots of groups from being reassigned
+                if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
+                  break;
+                }
 
-                LOG.log(Level.INFO, "GroupSplit from: {0} to {1}, Splitted Group: {3}, number: {2}",
-                    new Object[]{highLoadThread, lowLoadThread, n, highLoadGroup.toString()});
+                underloadedThreads.add(lowLoadThread);
               }
-
-              // Prevent lots of groups from being reassigned
-              if (rebNum >= TimeUnit.MILLISECONDS.toSeconds(rebalancingPeriod)) {
-                break;
-              }
-
-              underloadedThreads.add(lowLoadThread);
             }
           }
 

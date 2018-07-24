@@ -244,7 +244,13 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
       Collections.sort(overloadedThreads, new Comparator<EventProcessor>() {
         @Override
         public int compare(final EventProcessor o1, final EventProcessor o2) {
-          return o1.getLoad() < o2.getLoad() ? 1 : -1;
+          if (o1.getLoad() > o2.getLoad()) {
+            return 1;
+          } else if (o1.getLoad() < o2.getLoad()) {
+            return -1;
+          } else {
+            return 0;
+          }
         }
       });
 
@@ -257,9 +263,9 @@ public final class DefaultGroupRebalancerImpl implements GroupRebalancer {
             @Override
             public int compare(final Group o1, final Group o2) {
               if (o1.getLoad() < o2.getLoad()) {
-                return -1;
-              } else if (o1.getLoad() > o2.getLoad()) {
                 return 1;
+              } else if (o1.getLoad() > o2.getLoad()) {
+                return -1;
               } else {
                 return 0;
               }
