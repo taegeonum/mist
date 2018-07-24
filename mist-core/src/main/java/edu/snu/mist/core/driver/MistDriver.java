@@ -18,6 +18,7 @@ package edu.snu.mist.core.driver;
 import edu.snu.mist.core.configs.MistCommonConfigs;
 import edu.snu.mist.core.configs.MistMasterConfigs;
 import edu.snu.mist.core.configs.MistTaskConfigs;
+import edu.snu.mist.core.eval.EvalConfigs;
 import edu.snu.mist.core.master.MistMaster;
 import edu.snu.mist.core.parameters.DriverHostname;
 import edu.snu.mist.core.parameters.DriverToMasterPort;
@@ -183,6 +184,8 @@ public final class MistDriver {
    */
   private String masterHostname;
 
+  private final EvalConfigs evalConfigs;
+
   @Inject
   private MistDriver(final EvaluatorRequestor requestor,
                      final JVMProcessFactory jvmProcessFactory,
@@ -196,7 +199,8 @@ public final class MistDriver {
                      final TaskSubmitInfoStore taskSubmitInfoStore,
                      final MasterToDriverMessage masterToDriverMessage,
                      @Parameter(MasterToDriverPort.class) final int masterToDriverPort,
-                     final RunningTaskInfoStore runningTaskInfoStore) throws Exception {
+                     final RunningTaskInfoStore runningTaskInfoStore,
+                     final EvalConfigs evalConfigs) throws Exception {
     this.localAddressProvider = localAddressProvider;
     this.requestor = requestor;
     this.jvmProcessFactory = jvmProcessFactory;
@@ -210,6 +214,7 @@ public final class MistDriver {
     this.isMasterRunning = new AtomicBoolean(false);
     this.isMasterFailed = new AtomicBoolean(false);
     this.proxyToMaster = null;
+    this.evalConfigs = evalConfigs;
     this.taskSubmitInfoStore = taskSubmitInfoStore;
     this.masterToDriverServer = AvroUtils.createAvroServer(MasterToDriverMessage.class,
         masterToDriverMessage, new InetSocketAddress(masterToDriverPort));
@@ -284,6 +289,7 @@ public final class MistDriver {
                 additionalMasterConf,
                 mistCommonConfigs.getConfiguration(),
                 mistTaskConfigs.getConfiguration(),
+                evalConfigs.getConfig(),
                 mistMasterConfigs.getConfiguration()));
       } else {
         runningTaskInfoStore.put(taskId);

@@ -17,6 +17,7 @@ package edu.snu.mist.core.master;
 
 import edu.snu.mist.core.configs.MistCommonConfigs;
 import edu.snu.mist.core.configs.MistTaskConfigs;
+import edu.snu.mist.core.eval.EvalConfigs;
 import edu.snu.mist.core.parameters.DriverHostname;
 import edu.snu.mist.core.parameters.MasterToDriverPort;
 import edu.snu.mist.core.parameters.NewRatio;
@@ -125,19 +126,22 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
    */
   private TaskInfoRWLock taskInfoRWLock;
 
+  private final EvalConfigs evalConfigs;
+
   @Inject
   private DefaultTaskRequestorImpl(
-      final TaskStatsMap taskStatsMap,
-      final ProxyToTaskMap proxyToTaskMap,
-      final TaskAddressInfoMap taskAddressInfoMap,
-      @Parameter(DriverHostname.class) final String driverHostname,
-      @Parameter(MasterToDriverPort.class) final int masterToDriverPort,
-      @Parameter(NumTaskCores.class) final int numTaskCores,
-      @Parameter(TaskMemorySize.class) final int taskMemSize,
-      @Parameter(NewRatio.class) final int newRatio,
-      @Parameter(ReservedCodeCacheSize.class) final int reservedCodeCacheSize,
-      final MistCommonConfigs commonConfigs,
-      final MistTaskConfigs taskConfigs,
+          final TaskStatsMap taskStatsMap,
+          final ProxyToTaskMap proxyToTaskMap,
+          final TaskAddressInfoMap taskAddressInfoMap,
+          @Parameter(DriverHostname.class) final String driverHostname,
+          @Parameter(MasterToDriverPort.class) final int masterToDriverPort,
+          @Parameter(NumTaskCores.class) final int numTaskCores,
+          @Parameter(TaskMemorySize.class) final int taskMemSize,
+          @Parameter(NewRatio.class) final int newRatio,
+          @Parameter(ReservedCodeCacheSize.class) final int reservedCodeCacheSize,
+          final MistCommonConfigs commonConfigs,
+          final MistTaskConfigs taskConfigs,
+          final EvalConfigs evalConfigs,
       final TaskInfoRWLock taskInfoRWLock) throws IOException {
     this.taskIdIndex = 0;
     this.taskStatsMap = taskStatsMap;
@@ -152,6 +156,7 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
     this.commonConfigs = commonConfigs;
     this.taskConfigs = taskConfigs;
     this.confSerializer = new AvroConfigurationSerializer();
+    this.evalConfigs = evalConfigs;
   }
 
   @Override
@@ -165,7 +170,8 @@ public final class DefaultTaskRequestorImpl implements TaskRequestor {
       // Set task id for each task.
       final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
       jcb.bindNamedParameter(TaskId.class, taskId);
-      final String serializedConf = confSerializer.toString(Configurations.merge(commonConf, jcb.build()));
+      final String serializedConf = confSerializer.toString(
+              Configurations.merge(commonConf, jcb.build(), evalConfigs.getConfig()));
       final TaskRequest taskRequest = TaskRequest.newBuilder()
           .setTaskId(taskId)
           .setTaskCpuNum(numTaskCores)

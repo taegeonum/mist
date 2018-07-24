@@ -145,25 +145,25 @@ public final class MistMasterConfigs implements MistConfigs {
 
   @Inject
   private MistMasterConfigs(
-      @Parameter(NumTasks.class) final int numTasks,
-      @Parameter(TaskMemorySize.class) final int taskMemSize,
-      @Parameter(NumTaskCores.class) final int numTaskCores,
-      @Parameter(NewRatio.class) final int newRatio,
-      @Parameter(ReservedCodeCacheSize.class) final int reservedCodeCacheSize,
-      @Parameter(IdleTaskLoadThreshold.class) final double idleTaskLoadThreshold,
-      @Parameter(UnderloadedTaskLoadThreshold.class) final double underloadedTaskThreshold,
-      @Parameter(OverloadedTaskLoadThreshold.class) final double overloadedTaskThreshold,
-      @Parameter(QueryAllocationOption.class) final String queryAllocationOption,
-      @Parameter(RecoverySchedulerOption.class) final String recoverySchedulerOption,
-      @Parameter(RecoveryUnitSize.class) final int recoveryUnitSize,
-      @Parameter(DynamicScalingOption.class) final String dynamicScalingOption,
-      @Parameter(DynamicScalingPeriod.class) final long dynamicScalingPeriod,
-      @Parameter(MaxTaskNum.class) final int maxTaskNum,
-      @Parameter(MinTaskNum.class) final int minTaskNum,
-      @Parameter(ScaleInGracePeriod.class) final long scaleInGracePeriod,
-      @Parameter(ScaleInIdleTaskRatio.class) final double scaleInIdleTaskRatio,
-      @Parameter(ScaleOutGracePeriod.class) final long scaleOutGracePeriod,
-      @Parameter(ScaleOutOverloadedTaskRatio.class) final double scaleOutOverloadedTaskRatio) {
+          @Parameter(NumTasks.class) final int numTasks,
+          @Parameter(TaskMemorySize.class) final int taskMemSize,
+          @Parameter(NumTaskCores.class) final int numTaskCores,
+          @Parameter(NewRatio.class) final int newRatio,
+          @Parameter(ReservedCodeCacheSize.class) final int reservedCodeCacheSize,
+          @Parameter(IdleTaskLoadThreshold.class) final double idleTaskLoadThreshold,
+          @Parameter(UnderloadedTaskLoadThreshold.class) final double underloadedTaskThreshold,
+          @Parameter(OverloadedTaskLoadThreshold.class) final double overloadedTaskThreshold,
+          @Parameter(QueryAllocationOption.class) final String queryAllocationOption,
+          @Parameter(RecoverySchedulerOption.class) final String recoverySchedulerOption,
+          @Parameter(RecoveryUnitSize.class) final int recoveryUnitSize,
+          @Parameter(DynamicScalingOption.class) final String dynamicScalingOption,
+          @Parameter(DynamicScalingPeriod.class) final long dynamicScalingPeriod,
+          @Parameter(MaxTaskNum.class) final int maxTaskNum,
+          @Parameter(MinTaskNum.class) final int minTaskNum,
+          @Parameter(ScaleInGracePeriod.class) final long scaleInGracePeriod,
+          @Parameter(ScaleInIdleTaskRatio.class) final double scaleInIdleTaskRatio,
+          @Parameter(ScaleOutGracePeriod.class) final long scaleOutGracePeriod,
+          @Parameter(ScaleOutOverloadedTaskRatio.class) final double scaleOutOverloadedTaskRatio) {
     this.numTasks = numTasks;
     this.taskMemSize = taskMemSize;
     this.numTaskCores = numTaskCores;
@@ -238,6 +238,7 @@ public final class MistMasterConfigs implements MistConfigs {
     jcb.bindImplementation(ClientToMasterMessage.class, DefaultClientToMasterMessageImpl.class);
     jcb.bindImplementation(DriverToMasterMessage.class, DefaultDriverToMasterMessageImpl.class);
     jcb.bindImplementation(TaskToMasterMessage.class, DefaultTaskToMasterMessageImpl.class);
+
     return jcb.build();
   }
 
