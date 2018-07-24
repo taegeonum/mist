@@ -142,7 +142,7 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
         LOG.log(Level.INFO,
                 "EP {0}, Group {1}, ProcessingEvent: {2}, IncomingEvent: {3}, " +
                         "ProcessingTime: {4}, GLoad: {5}, EPLoad: {6}",
-                new Object[] {group.getGroupId(), processingEvent, incomingEvent,
+                new Object[] {eventProcessor, group.getGroupId(), processingEvent, incomingEvent,
                         processingEventTime, load, eventProcessorLoad});
       }
 
