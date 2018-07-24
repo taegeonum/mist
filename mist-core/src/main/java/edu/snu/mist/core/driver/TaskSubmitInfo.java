@@ -42,14 +42,18 @@ public final class TaskSubmitInfo {
    */
   private int reservedCodeCacheSize;
 
+  private final int memory;
+
   private TaskSubmitInfo(final String taskId,
                          final Configuration taskConfiguration,
                          final int newRatio,
-                         final int reservedCodeCacheSize) {
+                         final int reservedCodeCacheSize,
+                         final int memory) {
     this.taskId = taskId;
     this.taskConfiguration = taskConfiguration;
     this.newRatio = newRatio;
     this.reservedCodeCacheSize = reservedCodeCacheSize;
+    this.memory = memory;
   }
 
   public String getTaskId() {
@@ -68,6 +72,10 @@ public final class TaskSubmitInfo {
     return reservedCodeCacheSize;
   }
 
+  public int getMemory() {
+    return memory;
+  }
+
   public static Builder newBuilder() {
     return new Builder();
   }
@@ -82,11 +90,19 @@ public final class TaskSubmitInfo {
 
     private int reservedCodeCacheSize;
 
+    private int memory;
+
     Builder() {
       this.taskId = null;
       this.taskConfiguration = null;
       this.newRatio = -1;
       this.reservedCodeCacheSize = -1;
+      this.memory = -1;
+    }
+
+    public Builder setMemory(final int mem) {
+      memory = mem;
+      return this;
     }
 
     public Builder setTaskId(final String taskId) {
@@ -110,7 +126,7 @@ public final class TaskSubmitInfo {
     }
 
     public TaskSubmitInfo build() {
-      return new TaskSubmitInfo(taskId, taskConfiguration, newRatio, reservedCodeCacheSize);
+      return new TaskSubmitInfo(taskId, taskConfiguration, newRatio, reservedCodeCacheSize, memory);
     }
   }
 

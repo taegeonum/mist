@@ -249,6 +249,7 @@ public final class MistDriver {
         final TaskSubmitInfo taskSubmitInfo = taskSubmitInfoStore.getCurrentSubmitInfo();
         final String taskId = taskSubmitInfo.getTaskId();
         final JVMProcess jvmProcess = jvmProcessFactory.newEvaluatorProcess()
+            .setMemory(taskSubmitInfo.getMemory())
             .addOption("-XX:NewRatio=" + taskSubmitInfo.getNewRatio())
             .addOption("-XX:ReservedCodeCacheSize=" + taskSubmitInfo.getReservedCodeCacheSize() + "m")
             .addOption("-XX:+UseNUMA");

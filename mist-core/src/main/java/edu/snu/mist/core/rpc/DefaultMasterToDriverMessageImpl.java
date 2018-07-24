@@ -90,6 +90,7 @@ public final class DefaultMasterToDriverMessageImpl implements MasterToDriverMes
       final TaskSubmitInfo taskSubmitInfo = TaskSubmitInfo.newBuilder()
           .setTaskId(taskRequest.getTaskId())
           .setNewRatio(taskRequest.getNewRatio())
+          .setMemory(taskRequest.getTaskMemSize())
           .setReservedCodeCacheSize(taskRequest.getReservedCodeCacheSize())
           .setTaskConfiguration(configurationSerializer.fromString(taskRequest.getSerializedTaskConfiguration()))
           .build();
