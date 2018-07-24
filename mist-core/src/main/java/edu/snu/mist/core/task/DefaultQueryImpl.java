@@ -119,10 +119,11 @@ public final class DefaultQueryImpl implements Query {
    */
   @Override
   public int processAllEvent() {
+    scheduled.set(false);
+
     int numProcessedEvent = 0;
     SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
 
-    scheduled.set(false);
 
     while (sourceOutputEmitter != null) {
       numProcessedEvent += sourceOutputEmitter.processAllEvent();

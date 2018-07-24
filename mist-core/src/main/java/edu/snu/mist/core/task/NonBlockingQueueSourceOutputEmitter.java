@@ -67,10 +67,12 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   @Override
   public int processAllEvent() {
+    scheduled.set(false);
+
+    
     int numProcessedEvent = 0;
     MistEvent event = queue.poll();
 
-    scheduled.set(false);
     while (event != null) {
       for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
         process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
