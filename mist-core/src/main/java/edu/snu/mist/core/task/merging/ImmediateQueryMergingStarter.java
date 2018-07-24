@@ -19,8 +19,10 @@ import edu.snu.mist.common.SerializeUtils;
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.GraphUtils;
 import edu.snu.mist.common.graph.MISTEdge;
+import edu.snu.mist.core.eval.Merging;
 import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.codeshare.ClassLoaderProvider;
+import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -86,6 +88,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
    */
   private final List<String> groupJarFilePaths;
 
+  private final boolean merging;
+
   @Inject
   private ImmediateQueryMergingStarter(final CommonSubDagFinder commonSubDagFinder,
                                        final SrcAndDagMap<Map<String, String>> srcAndDagMap,
@@ -95,7 +99,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
                                        final ExecutionVertexCountMap executionVertexCountMap,
                                        final ClassLoaderProvider classLoaderProvider,
                                        final ExecutionVertexGenerator executionVertexGenerator,
-                                       final ExecutionVertexDagMap executionVertexDagMap) {
+                                       final ExecutionVertexDagMap executionVertexDagMap,
+                                       @Parameter(Merging.class) final boolean merging) {
     this.commonSubDagFinder = commonSubDagFinder;
     this.srcAndDagMap = srcAndDagMap;
     this.queryIdConfigDagMap = queryIdConfigDagMap;
@@ -105,6 +110,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
     this.configExecutionVertexMap = configExecutionVertexMap;
     this.executionVertexCountMap = executionVertexCountMap;
     this.executionVertexDagMap = executionVertexDagMap;
+    this.merging = merging;
     this.groupJarFilePaths = new CopyOnWriteArrayList<>();
   }
 
@@ -133,7 +139,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
       final Map<Map<String, String>, ExecutionDag> mergeableDags = findMergeableDags(submittedDag);
 
       // Exit the merging process if there is no mergeable dag
-      if (mergeableDags.size() == 0) {
+      if (mergeableDags.size() == 0 || !merging) {
         final ExecutionDag executionDag = generate(submittedDag, urls, classLoader);
         // Set up the output emitters of the submitted DAG
         QueryStarterUtils.setUpOutputEmitters(executionDag, query);

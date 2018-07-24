@@ -19,6 +19,6 @@ import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
 
 @NamedParameter(doc = "The threshold of utilization factor to determine underloaded threads (beta)",
-    short_name = "alpha", default_value = "0.8")
+    short_name = "alpha", default_value = "0.75")
 public final class UnderloadedThreshold implements Name<Double> {
 }

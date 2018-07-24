@@ -17,6 +17,7 @@ package edu.snu.mist.core.task.groupaware;
 
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.MISTEdge;
+import edu.snu.mist.core.eval.Merging;
 import edu.snu.mist.core.parameters.GroupId;
 import edu.snu.mist.core.shared.KafkaSharedResource;
 import edu.snu.mist.core.shared.MQTTResource;
@@ -120,6 +121,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
    */
   private final CheckpointManager checkpointManager;
 
+  private final boolean merging;
   /**
    * Default query manager in MistTask.
    */
@@ -137,7 +139,8 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
                                      final GroupMap groupMap,
                                      @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod,
                                      final GroupIdRequestor groupIdRequestor,
-                                     final CheckpointManager checkpointManager) {
+                                     final CheckpointManager checkpointManager,
+                                     @Parameter(Merging.class) final boolean merging) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;
     this.eventProcessorManager = eventProcessorManager;
@@ -152,6 +155,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     this.checkpointPeriod = checkpointPeriod;
     this.checkpointManager = checkpointManager;
     this.groupIdRequestor = groupIdRequestor;
+    this.merging = merging;
   }
 
   /**
@@ -252,6 +256,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     // TODO: Submit a single jar instead of list of jars
     jcb.bindNamedParameter(JarFilePath.class, paths.get(0));
     jcb.bindNamedParameter(PeriodicCheckpointPeriod.class, String.valueOf(checkpointPeriod));
+    jcb.bindNamedParameter(Merging.class, String.valueOf(merging));
 
     final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
     injector.bindVolatileInstance(MQTTResource.class, mqttSharedResource);
