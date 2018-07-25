@@ -249,7 +249,7 @@ public final class MistDriver {
         final TaskSubmitInfo taskSubmitInfo = taskSubmitInfoStore.getCurrentSubmitInfo();
         final String taskId = taskSubmitInfo.getTaskId();
         final JVMProcess jvmProcess = jvmProcessFactory.newEvaluatorProcess()
-            .setMemory(taskSubmitInfo.getMemory()-10240)
+            .setMemory(taskSubmitInfo.getMemory() - 10240)
             .addOption("-Xms" + (taskSubmitInfo.getMemory() / 2) + "m")
             .addOption("-XX:NewRatio=" + taskSubmitInfo.getNewRatio())
             .addOption("-XX:ReservedCodeCacheSize=" + taskSubmitInfo.getReservedCodeCacheSize() + "m")
