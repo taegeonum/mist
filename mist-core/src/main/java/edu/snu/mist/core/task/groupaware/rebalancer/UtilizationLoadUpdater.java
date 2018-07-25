@@ -143,9 +143,9 @@ public final class UtilizationLoadUpdater implements LoadUpdater {
 
       if (index == 0 && LOG.isLoggable(Level.FINE)) {
         LOG.log(Level.FINE,
-                "EP {0}, Group {1}, Sched: {2}, ProcessingEvent: {3}, IncomingEvent: {4}, " +
+                "EP {0}, Group {1}, ProcessingEvent: {3}, IncomingEvent: {4}, " +
                         "ProcessingTime: {5}, GLoad: {6}, EPLoad: {7}",
-                new Object[] {eventProcessor, group.getGroupId(), group.isScheduled(), processingEvent, incomingEvent,
+                new Object[] {eventProcessor, group.getGroupId(), 1, processingEvent, incomingEvent,
                         processingEventTime, load, eventProcessorLoad});
       }
 
