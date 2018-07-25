@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2018 Seoul National University
  *
@@ -32,7 +33,6 @@ import org.apache.reef.tang.annotations.Parameter;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,8 +98,6 @@ final class DefaultGroupImpl implements Group {
    */
   private final ConfigExecutionVertexMap configExecutionVertexMap;
 
-  private final AtomicBoolean scheduled = new AtomicBoolean(false);
-
   @Inject
   private DefaultGroupImpl(@Parameter(GroupId.class) final String groupId,
                            final ExecutionDags executionDags,
@@ -126,12 +124,11 @@ final class DefaultGroupImpl implements Group {
       query.setGroup(this);
       queryList.add(query);
       activeQueryQueue.add(query);
-      numActiveSubGroup.getAndIncrement();
 
-      if (!scheduled.get()) {
-        if (scheduled.compareAndSet(false, true)) {
-          eventProcessor.get().addActiveGroup(this);
-        }
+      final int n = numActiveSubGroup.getAndIncrement();
+
+      if (n == 0) {
+        eventProcessor.get().addActiveGroup(this);
       }
     }
   }
@@ -147,10 +144,8 @@ final class DefaultGroupImpl implements Group {
     final int n = numActiveSubGroup.getAndIncrement();
     //System.out.println("Event is added at Group, # group: " + n);
 
-    if (!scheduled.get()) {
-      if (scheduled.compareAndSet(false, true)) {
-        eventProcessor.get().addActiveGroup(this);
-      }
+    if (n == 0) {
+      eventProcessor.get().addActiveGroup(this);
     }
   }
 
@@ -158,9 +153,6 @@ final class DefaultGroupImpl implements Group {
   public void delete(final Query query) {
     //eventProcessor.get().removeActiveGroup(this);
     synchronized (queryList) {
-      if (activeQueryQueue.remove(query)) {
-        numActiveSubGroup.getAndDecrement();
-      }
       queryList.remove(query);
     }
   }
@@ -217,7 +209,7 @@ final class DefaultGroupImpl implements Group {
 
   @Override
   public boolean isActive() {
-    return scheduled.get();
+    return numActiveSubGroup.get() > 0;
   }
 
   @Override
@@ -231,47 +223,39 @@ final class DefaultGroupImpl implements Group {
 
   @Override
   public int processAllEvent(final long timeout) {
-    final int n = numActiveSubGroup.get();
     int numProcessedEvent = 0;
     final long startTime = System.currentTimeMillis();
 
-    scheduled.set(false);
+    int remain = numActiveSubGroup.get();
 
-    int numProcessedQueries = 0;
-    while (numProcessedQueries < n) {
-        final Query query = activeQueryQueue.poll();
-        if (query == null) {
-            break;
+    while (remain > 0) {
+      remain = numActiveSubGroup.decrementAndGet();
+      final Query query = activeQueryQueue.poll();
+
+      if (query == null) {
+        throw new RuntimeException("Query should not be null");
+      }
+
+      if (query.setProcessingFromReady()) {
+
+        final int processedEvent = query.processAllEvent();
+
+        if (processedEvent != 0) {
+          query.getProcessingEvent().getAndAdd(processedEvent);
+          numProcessedEvent += processedEvent;
         }
 
-        numProcessedQueries += 1;
+        query.setReady();
+      }
 
-        if (query.setProcessingFromReady()) {
-
-            final int processedEvent = query.processAllEvent();
-
-            if (processedEvent != 0) {
-                query.getProcessingEvent().getAndAdd(processedEvent);
-                numProcessedEvent += processedEvent;
-            }
-
-            query.setReady();
-        }
-
-        // Reschedule this group if it still has events to process
-        if (elapsedTime(startTime) > timeout) {
-            LOG.info("Preemption!! " + groupId);
-            break;
-        }
-    }
-
-    int remain = numActiveSubGroup.addAndGet(-numProcessedQueries);
-    if (remain > 0 && !scheduled.get()) {
-      if (scheduled.compareAndSet(false, true)) {
+      // Reschedule this group if it still has events to process
+      if (elapsedTime(startTime) > timeout) {
         final EventProcessor ep = eventProcessor.get();
+        // This could be null when the group merger merges the group
         if (ep != null) {
           ep.addActiveGroup(this);
         }
+        break;
       }
     }
 
@@ -307,11 +291,6 @@ final class DefaultGroupImpl implements Group {
   @Override
   public int size() {
     return queryList.size();
-  }
-
-  @Override
-  public boolean isScheduled() {
-    return scheduled.get();
   }
 
   @Override
@@ -358,14 +337,14 @@ final class DefaultGroupImpl implements Group {
       final String queryId = query.getId();
       LOG.log(Level.INFO, "query with id {0} is being checkpointed", new Object[]{queryId});
       queryCheckpointMap.put(queryId,
-          getQueryCheckpoint(queryIdConfigDagMap.get(queryId), groupTimestamp));
+              getQueryCheckpoint(queryIdConfigDagMap.get(queryId), groupTimestamp));
     }
 
     return GroupCheckpoint.newBuilder()
-        .setCheckpointTimestamp(groupTimestamp.getValue())
-        .setGroupId(groupId)
-        .setQueryCheckpointMap(queryCheckpointMap)
-        .build();
+            .setCheckpointTimestamp(groupTimestamp.getValue())
+            .setGroupId(groupId)
+            .setQueryCheckpointMap(queryCheckpointMap)
+            .build();
   }
 
   /**
@@ -411,14 +390,14 @@ final class DefaultGroupImpl implements Group {
         }
       }
       stateWithTimestampMap.put(cv.getId(), StateWithTimestamp.newBuilder()
-          .setVertexState(state)
-          .setCheckpointTimestamp(checkpointTimestamp)
-          .build());
+              .setVertexState(state)
+              .setCheckpointTimestamp(checkpointTimestamp)
+              .build());
     }
 
     return QueryCheckpoint.newBuilder()
-        .setQueryState(stateWithTimestampMap)
-        .build();
+            .setQueryState(stateWithTimestampMap)
+            .build();
   }
 
   /**

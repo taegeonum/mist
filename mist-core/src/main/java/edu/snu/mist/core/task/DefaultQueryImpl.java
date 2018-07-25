@@ -21,7 +21,6 @@ import javax.inject.Inject;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,8 +73,6 @@ public final class DefaultQueryImpl implements Query {
    */
   private final AtomicReference<QueryStatus> queryStatus = new AtomicReference<>(QueryStatus.READY);
 
-  private final AtomicBoolean scheduled = new AtomicBoolean(false);
-
   @Inject
   public DefaultQueryImpl(final String identifier) {
     this.id = identifier;
@@ -96,12 +93,9 @@ public final class DefaultQueryImpl implements Query {
   @Override
   public void insert(final SourceOutputEmitter sourceOutputEmitter) {
     activeSourceQueue.add(sourceOutputEmitter);
-    numActiveSources.getAndIncrement();
-
-    if (!scheduled.get()) {
-      if (scheduled.compareAndSet(false, true)) {
-        group.get().insert(this);
-      }
+    final int n = numActiveSources.getAndIncrement();
+    if (n == 0) {
+      group.get().insert(this);
     }
   }
 
@@ -111,8 +105,8 @@ public final class DefaultQueryImpl implements Query {
   @Override
   public void delete(final SourceOutputEmitter sourceOutputEmitter) {
     if (activeSourceQueue.remove(sourceOutputEmitter)) {
+      numActiveSources.decrementAndGet();
       group.get().delete(this);
-      numActiveSources.getAndDecrement();
     }
   }
 
@@ -122,26 +116,18 @@ public final class DefaultQueryImpl implements Query {
    */
   @Override
   public int processAllEvent() {
-    final int n = numActiveSources.get();
-    scheduled.set(false);
-
     int numProcessedEvent = 0;
-
-    int numProcessedSources = 0;
-    while (numProcessedSources < n) {
+    int remain = numActiveSources.get();
+    while (remain > 0) {
+      remain = numActiveSources.decrementAndGet();
       final SourceOutputEmitter sourceOutputEmitter = activeSourceQueue.poll();
-      if (sourceOutputEmitter == null) {
-        break;
-      }
-      numProcessedEvent += sourceOutputEmitter.processAllEvent();
-      numProcessedSources += 1;
-    }
 
-    final int remain = numActiveSources.addAndGet(-numProcessedSources);
-    if (remain > 0 && !scheduled.get()) {
-      if (scheduled.compareAndSet(false, true)) {
-        group.get().insert(this);
+      if (sourceOutputEmitter == null) {
+        throw new RuntimeException("SourceOutputemitter should not be null");
       }
+
+      numProcessedEvent += sourceOutputEmitter.processAllEvent();
+
     }
 
     return numProcessedEvent;
@@ -151,7 +137,6 @@ public final class DefaultQueryImpl implements Query {
   public long numberOfRemainingEvents() {
     int sum = 0;
     final Iterator<SourceOutputEmitter> iterator = activeSourceQueue.iterator();
-
     while (iterator.hasNext()) {
       final SourceOutputEmitter sourceOutputEmitter = iterator.next();
       sum += sourceOutputEmitter.numberOfEvents();

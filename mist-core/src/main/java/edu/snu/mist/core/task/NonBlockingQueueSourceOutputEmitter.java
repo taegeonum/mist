@@ -25,7 +25,6 @@ import edu.snu.mist.formats.avro.Direction;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -54,7 +53,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
    */
   private final Query query;
 
-  private final AtomicBoolean scheduled = new AtomicBoolean(false);
 
   public NonBlockingQueueSourceOutputEmitter(final Map<ExecutionVertex, MISTEdge> nextOperators,
                                              final Query query) {
@@ -66,15 +64,14 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   @Override
   public int processAllEvent() {
-    final int n = numEvents.get();
-    scheduled.set(false);
-
     int numProcessedEvent = 0;
-
-    while (numProcessedEvent < n) {
+    int remain = numEvents.get();
+    while (remain > 0) {
+      remain = numEvents.decrementAndGet();
       final MistEvent event = queue.poll();
+
       if (event == null) {
-        break;
+        throw new RuntimeException("Event should not be null");
       }
 
       for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
@@ -82,14 +79,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       }
       numProcessedEvent += 1;
     }
-
-    final int remain = numEvents.addAndGet(-numProcessedEvent);
-    if (remain > 0 && !scheduled.get()) {
-      if (scheduled.compareAndSet(false, true)) {
-        query.insert(this);
-      }
-    }
-
     return numProcessedEvent;
   }
 
@@ -138,13 +127,9 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       //System.out.println("Event is added at sourceOutputEmitter: " + data.getValue() + ", # events: " + n);
       queue.add(data);
       final int n = numEvents.getAndIncrement();
-
-      if (!scheduled.get()) {
-        if (scheduled.compareAndSet(false, true)) {
-          query.insert(this);
-        }
+      if (n == 0) {
+        query.insert(this);
       }
-
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
@@ -158,12 +143,9 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       queue.add(data);
       final int n = numEvents.getAndIncrement();
 
-      if (!scheduled.get()) {
-        if (scheduled.compareAndSet(false, true)) {
-          query.insert(this);
-        }
+      if (n == 0) {
+        query.insert(this);
       }
-
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
@@ -175,12 +157,9 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       queue.add(watermark);
       final int n = numEvents.getAndIncrement();
 
-      if (!scheduled.get()) {
-        if (scheduled.compareAndSet(false, true)) {
-          query.insert(this);
-        }
+      if (n == 0) {
+        query.insert(this);
       }
-
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
@@ -192,12 +171,9 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       queue.add(checkpoint);
       final int n = numEvents.getAndIncrement();
 
-      if (!scheduled.get()) {
-        if (scheduled.compareAndSet(false, true)) {
-          query.insert(this);
-        }
+      if (n == 0) {
+        query.insert(this);
       }
-
     } catch (final Exception e) {
       throw new RuntimeException(e);
     }
