@@ -70,8 +70,7 @@ public final class AffinityEventProcessorFactory implements EventProcessorFactor
       return new AffinityEventProcessor(id.getAndIncrement(), thread, runnable);
     } else {
 
-      final Thread thread = new Thread(runnable);
-      return new AffinityEventProcessor(id.getAndIncrement(), thread, runnable);
+      return new PTQEventProcessor(id.getAndIncrement());
     }
   }
 }

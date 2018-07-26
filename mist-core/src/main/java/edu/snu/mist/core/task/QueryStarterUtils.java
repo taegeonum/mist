@@ -36,7 +36,8 @@ public final class QueryStarterUtils {
    * @param submittedExecutionDag the dag of the submitted query
    */
   public static void setUpOutputEmitters(final ExecutionDag submittedExecutionDag,
-                                         final Query query) {
+                                         final Query query,
+                                         final boolean ptq) {
     final DAG<ExecutionVertex, MISTEdge> dag = submittedExecutionDag.getDag();
     final Iterator<ExecutionVertex> iterator = GraphUtils.topologicalSort(dag);
     while (iterator.hasNext()) {
@@ -46,7 +47,11 @@ public final class QueryStarterUtils {
           final PhysicalSource source = (PhysicalSource)executionVertex;
           final Map<ExecutionVertex, MISTEdge> nextOps = dag.getEdges(source);
           // Sets output emitters
-          source.setOutputEmitter(new NonBlockingQueueSourceOutputEmitter<>(nextOps, query));
+          if (ptq) {
+            source.setOutputEmitter(new PTQSourceOutputEmitter<>(nextOps, query));
+          } else {
+            source.setOutputEmitter(new NonBlockingQueueSourceOutputEmitter<>(nextOps, query));
+          }
           break;
         }
         case OPERATOR: {

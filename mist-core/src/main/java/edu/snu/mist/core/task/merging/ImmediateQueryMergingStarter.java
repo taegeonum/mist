@@ -19,6 +19,7 @@ import edu.snu.mist.common.SerializeUtils;
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.GraphUtils;
 import edu.snu.mist.common.graph.MISTEdge;
+import edu.snu.mist.core.eval.ExecutionModel;
 import edu.snu.mist.core.eval.Merging;
 import edu.snu.mist.core.task.*;
 import edu.snu.mist.core.task.codeshare.ClassLoaderProvider;
@@ -90,6 +91,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
 
   private final boolean merging;
 
+  private final boolean ptq;
+
   @Inject
   private ImmediateQueryMergingStarter(final CommonSubDagFinder commonSubDagFinder,
                                        final SrcAndDagMap<Map<String, String>> srcAndDagMap,
@@ -100,7 +103,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
                                        final ClassLoaderProvider classLoaderProvider,
                                        final ExecutionVertexGenerator executionVertexGenerator,
                                        final ExecutionVertexDagMap executionVertexDagMap,
-                                       @Parameter(Merging.class) final boolean merging) {
+                                       @Parameter(Merging.class) final boolean merging,
+                                       @Parameter(ExecutionModel.class) final String executionModel) {
     this.commonSubDagFinder = commonSubDagFinder;
     this.srcAndDagMap = srcAndDagMap;
     this.queryIdConfigDagMap = queryIdConfigDagMap;
@@ -110,6 +114,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
     this.configExecutionVertexMap = configExecutionVertexMap;
     this.executionVertexCountMap = executionVertexCountMap;
     this.executionVertexDagMap = executionVertexDagMap;
+    this.ptq = executionModel.equals("ptq");
     this.merging = merging;
     this.groupJarFilePaths = new CopyOnWriteArrayList<>();
   }
@@ -142,7 +147,7 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
       if (mergeableDags.size() == 0 || !merging) {
         final ExecutionDag executionDag = generate(submittedDag, urls, classLoader);
         // Set up the output emitters of the submitted DAG
-        QueryStarterUtils.setUpOutputEmitters(executionDag, query);
+        QueryStarterUtils.setUpOutputEmitters(executionDag, query, ptq);
 
         for (final ExecutionVertex source : executionDag.getDag().getRootVertices()) {
           // Start the source
@@ -342,8 +347,13 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
       if (correspondingVertex.getType() == ExecutionVertex.Type.SOURCE) {
         final PhysicalSource s = (PhysicalSource) correspondingVertex;
         final SourceOutputEmitter sourceOutputEmitter = s.getSourceOutputEmitter();
-        s.setOutputEmitter(new NonBlockingQueueSourceOutputEmitter<>(
-            executionDag.getDag().getEdges(correspondingVertex), sourceOutputEmitter.getQuery()));
+        if (ptq) {
+          s.setOutputEmitter(new PTQSourceOutputEmitter<>(
+                  executionDag.getDag().getEdges(correspondingVertex), sourceOutputEmitter.getQuery()));
+        } else {
+          s.setOutputEmitter(new NonBlockingQueueSourceOutputEmitter<>(
+                  executionDag.getDag().getEdges(correspondingVertex), sourceOutputEmitter.getQuery()));
+        }
       } else if (correspondingVertex.getType() == ExecutionVertex.Type.OPERATOR) {
         ((PhysicalOperator)correspondingVertex).getOperator().setOutputEmitter(
             new OperatorOutputEmitter(executionDag.getDag().getEdges(correspondingVertex)));

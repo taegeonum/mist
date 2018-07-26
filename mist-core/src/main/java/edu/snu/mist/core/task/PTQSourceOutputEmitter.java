@@ -15,11 +15,12 @@
  */
 package edu.snu.mist.core.task;
 
+import edu.snu.mist.common.graph.MISTEdge;
 import edu.snu.mist.core.MistCheckpointEvent;
 import edu.snu.mist.core.MistDataEvent;
 import edu.snu.mist.core.MistEvent;
 import edu.snu.mist.core.MistWatermarkEvent;
-import edu.snu.mist.common.graph.MISTEdge;
+import edu.snu.mist.core.task.groupaware.eventprocessor.PTQEventProcessor;
 import edu.snu.mist.formats.avro.Direction;
 
 import java.util.Map;
@@ -31,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * This emitter enqueues events to the source event queue.
  *  @param <I>
  */
-public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutputEmitter {
+public final class PTQSourceOutputEmitter<I> implements SourceOutputEmitter {
 
   /**
    * A queue for events.
@@ -54,8 +55,8 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
   private final Query query;
 
 
-  public NonBlockingQueueSourceOutputEmitter(final Map<ExecutionVertex, MISTEdge> nextOperators,
-                                             final Query query) {
+  public PTQSourceOutputEmitter(final Map<ExecutionVertex, MISTEdge> nextOperators,
+                                final Query query) {
     this.queue = new ConcurrentLinkedQueue<>();
     this.nextOperators = nextOperators;
     this.query = query;
@@ -64,26 +65,18 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   @Override
   public int processAllEvent() {
-    int numProcessedEvent = 0;
-    int remain = numEvents.get();
-    while (remain > 0) {
-      remain = numEvents.decrementAndGet();
-      final MistEvent event = queue.poll();
-      if (event == null) {
-        throw new RuntimeException("Event should not be null");
-      }
-
-      for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
-        process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
-      }
-      numProcessedEvent += 1;
-    }
-    return numProcessedEvent;
+    throw new RuntimeException("should not be called");
   }
 
   @Override
   public void processEvent(final MistEvent event) {
+    if (event == null) {
+      throw new RuntimeException("Event should not be null");
+    }
 
+    for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
+      process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
+    }
   }
 
   private void process(final MistEvent event,
@@ -127,59 +120,25 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   @Override
   public void emitData(final MistDataEvent data) {
-    try {
-      //System.out.println("Event is added at sourceOutputEmitter: " + data.getValue() + ", # events: " + n);
-      queue.add(data);
-      final int n = numEvents.getAndIncrement();
-      if (n == 0) {
-        query.insert(this);
-      }
-    } catch (final Exception e) {
-      throw new RuntimeException(e);
-    }
+    final PTQEventProcessor ep = (PTQEventProcessor)query.getGroup().getEventProcessor();
+    ep.addEvent(this, data);
   }
 
   @Override
   public void emitData(final MistDataEvent data, final int index) {
-    try {
-      // source output emitter does not emit data according to the index
-      //System.out.println("Event is added at sourceOutputEmitter: " + data.getValue() + ", # events: " + n);
-      queue.add(data);
-      final int n = numEvents.getAndIncrement();
-
-      if (n == 0) {
-        query.insert(this);
-      }
-    } catch (final Exception e) {
-      throw new RuntimeException(e);
-    }
+    final PTQEventProcessor ep = (PTQEventProcessor)query.getGroup().getEventProcessor();
+    ep.addEvent(this, data);
   }
 
   @Override
   public void emitWatermark(final MistWatermarkEvent watermark) {
-    try {
-      queue.add(watermark);
-      final int n = numEvents.getAndIncrement();
-
-      if (n == 0) {
-        query.insert(this);
-      }
-    } catch (final Exception e) {
-      throw new RuntimeException(e);
-    }
+    final PTQEventProcessor ep = (PTQEventProcessor)query.getGroup().getEventProcessor();
+    ep.addEvent(this, watermark);
   }
 
   @Override
   public void emitCheckpoint(final MistCheckpointEvent checkpoint) {
-    try {
-      queue.add(checkpoint);
-      final int n = numEvents.getAndIncrement();
-
-      if (n == 0) {
-        query.insert(this);
-      }
-    } catch (final Exception e) {
-      throw new RuntimeException(e);
-    }
+    final PTQEventProcessor ep = (PTQEventProcessor)query.getGroup().getEventProcessor();
+    ep.addEvent(this, checkpoint);
   }
 }

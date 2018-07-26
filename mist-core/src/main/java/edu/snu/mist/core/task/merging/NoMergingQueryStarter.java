@@ -17,7 +17,9 @@ package edu.snu.mist.core.task.merging;
 
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.MISTEdge;
+import edu.snu.mist.core.eval.ExecutionModel;
 import edu.snu.mist.core.task.*;
+import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -38,12 +40,15 @@ public final class NoMergingQueryStarter implements QueryStarter {
    * The dag generator.
    */
   private final DagGenerator dagGenerator;
+  private final boolean ptq;
 
   @Inject
   private NoMergingQueryStarter(final ExecutionPlanDagMap executionPlanDagMap,
-                                final DagGenerator dagGenerator) {
+                                final DagGenerator dagGenerator,
+                                @Parameter(ExecutionModel.class) final String executionModel) {
     this.executionPlanDagMap = executionPlanDagMap;
     this.dagGenerator = dagGenerator;
+    this.ptq = executionModel.equals("ptq");
   }
 
   /**
@@ -59,7 +64,7 @@ public final class NoMergingQueryStarter implements QueryStarter {
 
     final ExecutionDag submittedExecutionDag = dagGenerator.generate(configDag, jarFilePaths);
     executionPlanDagMap.put(queryId, submittedExecutionDag);
-    QueryStarterUtils.setUpOutputEmitters(submittedExecutionDag, query);
+    QueryStarterUtils.setUpOutputEmitters(submittedExecutionDag, query, ptq);
     // starts to receive input data stream from the sources
     final DAG<ExecutionVertex, MISTEdge> dag = submittedExecutionDag.getDag();
     for (final ExecutionVertex source : dag.getRootVertices()) {

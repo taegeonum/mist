@@ -15,6 +15,7 @@
  */
 package edu.snu.mist.core.task;
 
+import edu.snu.mist.core.MistEvent;
 import edu.snu.mist.core.OutputEmitter;
 
 /**
@@ -27,6 +28,8 @@ public interface SourceOutputEmitter extends OutputEmitter {
    * @return number of processed events
    */
   int processAllEvent();
+
+  void processEvent(MistEvent event);
 
   /**
    * Get the number of events that are in the queue.
