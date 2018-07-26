@@ -15,6 +15,7 @@
  */
 package edu.snu.mist.core.task.groupaware.eventprocessor;
 
+import edu.snu.mist.core.task.groupaware.eventprocessor.parameters.Affinity;
 import edu.snu.mist.core.task.groupaware.parameters.ProcessingTimeout;
 import net.openhft.affinity.AffinityThreadFactory;
 import org.apache.reef.tang.annotations.Parameter;
@@ -44,15 +45,18 @@ public final class AffinityEventProcessorFactory implements EventProcessorFactor
    */
   private final AffinityThreadFactory affinityThreadFactory;
 
+  private final boolean affinity;
   /**
    * Processing timeout.
    */
   private final long timeout;
   @Inject
   private AffinityEventProcessorFactory(final NextGroupSelectorFactory nextGroupSelectorFactory,
-                                        @Parameter(ProcessingTimeout.class) final long timeout) {
+                                        @Parameter(ProcessingTimeout.class) final long timeout,
+                                        @Parameter(Affinity.class) final boolean affinity) {
     this.nextGroupSelectorFactory = nextGroupSelectorFactory;
     this.timeout = timeout;
+    this.affinity = affinity;
     this.affinityThreadFactory = new AffinityThreadFactory("Afnty");
     LOG.info("AffinityEventProcessorFactory start");
   }
@@ -61,7 +65,13 @@ public final class AffinityEventProcessorFactory implements EventProcessorFactor
   public EventProcessor newEventProcessor() {
     final NextGroupSelector nextGroupSelector = nextGroupSelectorFactory.newInstance();
     final AffinityRunnable runnable = new AffinityRunnable(nextGroupSelector, timeout);
-    final Thread thread = affinityThreadFactory.newThread(runnable);
-    return new AffinityEventProcessor(id.getAndIncrement(), thread, runnable);
+    if (affinity) {
+      final Thread thread = affinityThreadFactory.newThread(runnable);
+      return new AffinityEventProcessor(id.getAndIncrement(), thread, runnable);
+    } else {
+
+      final Thread thread = new Thread(runnable);
+      return new AffinityEventProcessor(id.getAndIncrement(), thread, runnable);
+    }
   }
 }
