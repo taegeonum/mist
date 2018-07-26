@@ -49,6 +49,7 @@ public final class PTQEventProcessor implements EventProcessor {
   public PTQEventProcessor(final int id) {
     this.id = id;
     this.eventQueue = new LinkedBlockingQueue<>();
+    LOG.info("Start ptq event process");
     this.thread = new Thread(() -> {
       while (!closed.get()) {
         try {
@@ -66,6 +67,7 @@ public final class PTQEventProcessor implements EventProcessor {
   }
 
   public void addEvent(final SourceOutputEmitter emitter, final MistEvent event) {
+    LOG.info("Add event to ptq event processor");
     eventQueue.add(new Tuple<>(emitter, event));
   }
 

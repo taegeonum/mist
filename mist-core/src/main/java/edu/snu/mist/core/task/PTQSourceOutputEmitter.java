@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
 /**
  * This emitter enqueues events to the source event queue.
@@ -53,6 +54,7 @@ public final class PTQSourceOutputEmitter<I> implements SourceOutputEmitter {
    * Query that contains this source.
    */
   private final Query query;
+  private static final Logger LOG = Logger.getLogger(PTQSourceOutputEmitter.class.getName());
 
 
   public PTQSourceOutputEmitter(final Map<ExecutionVertex, MISTEdge> nextOperators,
@@ -73,6 +75,9 @@ public final class PTQSourceOutputEmitter<I> implements SourceOutputEmitter {
     if (event == null) {
       throw new RuntimeException("Event should not be null");
     }
+
+    LOG.info("Prorcess event");
+
 
     for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {
       process(event, entry.getValue().getDirection(), (PhysicalOperator)entry.getKey());
