@@ -20,5 +20,5 @@ import org.apache.reef.tang.annotations.NamedParameter;
 
 @NamedParameter(doc = "The grace period (sec) for preventing the adjustment of the number of event processors",
     short_name = "affinity", default_value = "true")
-public final class Affinity implements Name<Integer> {
+public final class Affinity implements Name<Boolean> {
 }
