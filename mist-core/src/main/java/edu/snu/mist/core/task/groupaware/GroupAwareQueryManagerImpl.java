@@ -44,6 +44,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -122,7 +123,9 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
   private final CheckpointManager checkpointManager;
 
   private final boolean merging;
-  /**
+  private final AtomicInteger queryNum = new AtomicInteger();
+
+    /**
    * Default query manager in MistTask.
    */
   @Inject
@@ -175,6 +178,7 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
   @Override
   public QueryControlResult createQueryWithCheckpoint(final AvroDag avroDag,
                                                       final QueryCheckpoint checkpointedState) {
+    LOG.info("Query " + queryNum.incrementAndGet());
     final QueryControlResult queryControlResult = new QueryControlResult();
     final String queryId = avroDag.getQueryId();
     queryControlResult.setQueryId(queryId);

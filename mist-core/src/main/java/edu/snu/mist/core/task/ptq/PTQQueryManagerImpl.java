@@ -132,6 +132,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
 
   private final boolean mergingEnabled;
 
+  private final AtomicInteger queryNum = new AtomicInteger();
   /**
    * Default query manager in MistTask.
    */
@@ -188,6 +189,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
   @Override
   public QueryControlResult createQueryWithCheckpoint(final AvroDag avroDag,
                                                       final QueryCheckpoint checkpointedState) {
+    LOG.info("Query " + queryNum.incrementAndGet());
     final QueryControlResult queryControlResult = new QueryControlResult();
     final String queryId = avroDag.getQueryId();
     queryControlResult.setQueryId(queryId);
