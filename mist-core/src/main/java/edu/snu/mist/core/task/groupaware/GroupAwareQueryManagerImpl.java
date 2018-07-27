@@ -17,7 +17,6 @@ package edu.snu.mist.core.task.groupaware;
 
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.MISTEdge;
-import edu.snu.mist.core.eval.ExecutionModel;
 import edu.snu.mist.core.eval.Merging;
 import edu.snu.mist.core.parameters.GroupId;
 import edu.snu.mist.core.shared.KafkaSharedResource;
