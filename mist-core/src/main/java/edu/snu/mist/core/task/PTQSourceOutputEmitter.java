@@ -76,7 +76,7 @@ public final class PTQSourceOutputEmitter<I> implements SourceOutputEmitter {
       throw new RuntimeException("Event should not be null");
     }
 
-    LOG.info("Prorcess event");
+    //LOG.info("Prorcess event");
 
 
     for (final Map.Entry<ExecutionVertex, MISTEdge> entry : nextOperators.entrySet()) {

@@ -123,8 +123,6 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
   private final CheckpointManager checkpointManager;
 
   private final boolean merging;
-
-  private final String executionModel;
   /**
    * Default query manager in MistTask.
    */
@@ -143,12 +141,10 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
                                      @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod,
                                      final GroupIdRequestor groupIdRequestor,
                                      final CheckpointManager checkpointManager,
-                                     @Parameter(ExecutionModel.class) final String executionModel,
                                      @Parameter(Merging.class) final boolean merging) {
     this.scheduler = schedulerWrapper.getScheduler();
     this.planStore = planStore;
     this.eventProcessorManager = eventProcessorManager;
-    this.executionModel = executionModel;
     this.configDagGenerator = configDagGenerator;
     this.mqttSharedResource = mqttSharedResource;
     this.kafkaSharedResource = kafkaSharedResource;
@@ -262,7 +258,6 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
     jcb.bindNamedParameter(JarFilePath.class, paths.get(0));
     jcb.bindNamedParameter(PeriodicCheckpointPeriod.class, String.valueOf(checkpointPeriod));
     jcb.bindNamedParameter(Merging.class, String.valueOf(merging));
-    jcb.bindNamedParameter(ExecutionModel.class, executionModel);
 
     final Injector injector = Tang.Factory.getTang().newInjector(jcb.build());
     injector.bindVolatileInstance(MQTTResource.class, mqttSharedResource);

@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Logger;
 
 /**
  * This starter tries to merges the submitted dag with the currently running dag.
@@ -93,6 +94,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
 
   private final boolean ptq;
 
+  private static final Logger LOG = Logger.getLogger(ImmediateQueryMergingStarter.class.getName());
+
   @Inject
   private ImmediateQueryMergingStarter(final CommonSubDagFinder commonSubDagFinder,
                                        final SrcAndDagMap<Map<String, String>> srcAndDagMap,
@@ -115,6 +118,8 @@ public final class ImmediateQueryMergingStarter implements QueryStarter {
     this.executionVertexCountMap = executionVertexCountMap;
     this.executionVertexDagMap = executionVertexDagMap;
     this.ptq = executionModel.equals("ptq");
+    LOG.info("Execution model: " + executionModel + ", ptq: " + ptq);
+
     this.merging = merging;
     this.groupJarFilePaths = new CopyOnWriteArrayList<>();
   }

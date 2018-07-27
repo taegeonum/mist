@@ -18,6 +18,7 @@ package edu.snu.mist.core.task.ptq;
 import edu.snu.mist.common.graph.DAG;
 import edu.snu.mist.common.graph.MISTEdge;
 import edu.snu.mist.core.eval.CodeSharing;
+import edu.snu.mist.core.eval.ExecutionModel;
 import edu.snu.mist.core.eval.Merging;
 import edu.snu.mist.core.parameters.GroupId;
 import edu.snu.mist.core.shared.KafkaSharedResource;
@@ -258,7 +259,7 @@ public final class PTQQueryManagerImpl implements QueryManager {
     // TODO: Submit a single jar instead of list of jars
     jcb.bindNamedParameter(JarFilePath.class, paths.get(0));
     jcb.bindNamedParameter(PeriodicCheckpointPeriod.class, String.valueOf(checkpointPeriod));
-
+    jcb.bindNamedParameter(ExecutionModel.class, "ptq");
 
     if (!codeSharing) {
       jcb.bindImplementation(ClassLoaderProvider.class, NoSharingURLClassLoaderProvider.class);

@@ -67,7 +67,7 @@ public final class PTQEventProcessor implements EventProcessor {
   }
 
   public void addEvent(final SourceOutputEmitter emitter, final MistEvent event) {
-    LOG.info("Add event to ptq event processor");
+    //LOG.info("Add event to ptq event processor");
     eventQueue.add(new Tuple<>(emitter, event));
   }
 
