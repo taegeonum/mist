@@ -39,11 +39,13 @@ public final class RoundRobinGroupAssignerImpl implements GroupAssigner {
   private final AtomicInteger index = new AtomicInteger();
 
   private final ConcurrentMap<String, AtomicInteger> counterMap = new ConcurrentHashMap<>();
+  private final List<EventProcessor> eps;
+
   @Inject
   private RoundRobinGroupAssignerImpl(final GroupAllocationTable groupAllocationTable) {
     this.groupAllocationTable = groupAllocationTable;
+    this.eps = groupAllocationTable.getEventProcessorsNotRunningIsolatedGroup();
   }
-
 
   /**
    * Assign the new group to the event processor.
@@ -56,7 +58,6 @@ public final class RoundRobinGroupAssignerImpl implements GroupAssigner {
     }
     final AtomicInteger counter = counterMap.get(groupInfo.getApplicationInfo().getApplicationId());
 
-    final List<EventProcessor> eps = groupAllocationTable.getEventProcessorsNotRunningIsolatedGroup();
     final EventProcessor ep = eps.get(counter.getAndIncrement() % eps.size());
     groupAllocationTable.getValue(ep).add(groupInfo);
     groupInfo.setEventProcessor(ep);
