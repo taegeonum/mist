@@ -30,11 +30,9 @@ import javax.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -116,6 +114,8 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
    * The checkpoint manager.
    */
   private final CheckpointManager checkpointManager;
+  private final ConcurrentMap<String, AtomicInteger> appCounter = new ConcurrentHashMap<>();
+
 
   @Inject
   private GroupAllocationTableModifierImpl(final GroupAllocationTable groupAllocationTable,
@@ -183,6 +183,13 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               groupAssigner.assignGroup(group);
               groupMap.putIfAbsent(group.getGroupId(), group);
               checkpointManager.createGroupQueryInfoFile(group);
+
+              if (!appCounter.containsKey(tuple.getKey().getApplicationId())) {
+                appCounter.putIfAbsent(tuple.getKey().getApplicationId(), new AtomicInteger());
+              }
+              final AtomicInteger c = appCounter.get(tuple.getKey().getApplicationId());
+              c.incrementAndGet();
+
               break;
             }
             case QUERY_ADD: {
@@ -218,6 +225,15 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               // TODO
               break;
             case REBALANCE:
+              final StringBuilder b = new StringBuilder();
+              for (final String appId : appCounter.keySet()) {
+                b.append(appId);
+                b.append(": ");
+                b.append(appCounter.get(appId).get());
+                b.append("\n");
+              }
+              LOG.info(b.toString());
+
               loadUpdater.update();
               //isolatedGroupReassigner.reassignIsolatedGroups();
               //groupMerger.groupMerging();

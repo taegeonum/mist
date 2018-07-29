@@ -25,11 +25,9 @@ import org.apache.reef.io.Tuple;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Random;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -88,6 +86,8 @@ public final class PTQGroupAllocationTableModifier implements GroupAllocationTab
   private final GroupSplitter groupSplitter;
 
   private final Random random = new Random();
+
+  private final ConcurrentMap<String, AtomicInteger> appCounter = new ConcurrentHashMap<>();
   @Inject
   private PTQGroupAllocationTableModifier(final GroupAllocationTable groupAllocationTable,
                                           final GroupAssigner groupAssigner,
@@ -144,6 +144,13 @@ public final class PTQGroupAllocationTableModifier implements GroupAllocationTab
               final Tuple<ApplicationInfo, Group> tuple = (Tuple<ApplicationInfo, Group>) event.getValue();
               final Group group = tuple.getValue();
               tuple.getKey().addGroup(group);
+
+              if (!appCounter.containsKey(tuple.getKey().getApplicationId())) {
+                appCounter.putIfAbsent(tuple.getKey().getApplicationId(), new AtomicInteger());
+              }
+              final AtomicInteger c = appCounter.get(tuple.getKey().getApplicationId());
+              c.incrementAndGet();
+
               groupAssigner.assignGroup(group);
               break;
             }
@@ -170,6 +177,14 @@ public final class PTQGroupAllocationTableModifier implements GroupAllocationTab
               // TODO
               break;
             case REBALANCE:
+              final StringBuilder b = new StringBuilder();
+              for (final String appId : appCounter.keySet()) {
+                b.append(appId);
+                b.append(": ");
+                b.append(appCounter.get(appId).get());
+                b.append("\n");
+              }
+              LOG.info(b.toString());
               break;
             case ISOLATION:
               break;
