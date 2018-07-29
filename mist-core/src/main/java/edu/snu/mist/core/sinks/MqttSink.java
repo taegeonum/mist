@@ -52,6 +52,8 @@ public final class MqttSink implements Sink<MqttMessage> {
    */
   private final String topic;
 
+  private int num = 0;
+
   @Inject
   public MqttSink(
       @Parameter(MQTTBrokerURI.class) final String brokerURI,
@@ -71,15 +73,19 @@ public final class MqttSink implements Sink<MqttMessage> {
 
   @Override
   public void handle(final MqttMessage input) {
-    try {
-      mqttClient.publish(topic, input);
-    } catch (final MqttException e) {
-      // Reconnect!
-      e.printStackTrace();
-      LOG.log(Level.SEVERE, "Reconnecting sink client of topic " + topic + ", uri: " + brokerURI);
-      resource.deleteMqttSinkClient(brokerURI, topic, mqttClient);
-      reconnect();
-      handle(input);
+    num += 1;
+    if (num % 10 == 0) {
+      num = 0;
+      try {
+        mqttClient.publish(topic, input);
+      } catch (final MqttException e) {
+        // Reconnect!
+        e.printStackTrace();
+        LOG.log(Level.SEVERE, "Reconnecting sink client of topic " + topic + ", uri: " + brokerURI);
+        resource.deleteMqttSinkClient(brokerURI, topic, mqttClient);
+        reconnect();
+        handle(input);
+      }
     }
   }
 
