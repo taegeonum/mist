@@ -21,6 +21,8 @@ import edu.snu.mist.core.task.groupaware.eventprocessor.EventProcessor;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -34,7 +36,8 @@ public final class RoundRobinGroupAssignerImpl implements GroupAssigner {
    */
   private final GroupAllocationTable groupAllocationTable;
 
-  private final AtomicInteger index = new AtomicInteger();
+  private final ConcurrentMap<String, AtomicInteger> counterMap = new ConcurrentHashMap<>();
+
   @Inject
   private RoundRobinGroupAssignerImpl(final GroupAllocationTable groupAllocationTable) {
     this.groupAllocationTable = groupAllocationTable;
@@ -47,8 +50,13 @@ public final class RoundRobinGroupAssignerImpl implements GroupAssigner {
    */
   @Override
   public void assignGroup(final Group groupInfo) {
+    if (!counterMap.containsKey(groupInfo.getApplicationInfo())) {
+      counterMap.putIfAbsent(groupInfo.getApplicationInfo().getApplicationId(), new AtomicInteger(0));
+    }
+
+    final AtomicInteger counter = counterMap.get(groupInfo.getApplicationInfo().getApplicationId());
     final List<EventProcessor> eps = groupAllocationTable.getEventProcessorsNotRunningIsolatedGroup();
-    final EventProcessor ep = eps.get(index.getAndIncrement() % eps.size());
+    final EventProcessor ep = eps.get(counter.getAndIncrement() % eps.size());
     groupAllocationTable.getValue(ep).add(groupInfo);
     groupInfo.setEventProcessor(ep);
   }

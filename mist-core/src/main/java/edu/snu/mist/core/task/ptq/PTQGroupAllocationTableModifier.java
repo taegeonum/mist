@@ -143,6 +143,7 @@ public final class PTQGroupAllocationTableModifier implements GroupAllocationTab
             case GROUP_ADD: {
               final Tuple<ApplicationInfo, Group> tuple = (Tuple<ApplicationInfo, Group>) event.getValue();
               final Group group = tuple.getValue();
+              tuple.getKey().addGroup(group);
               groupAssigner.assignGroup(group);
               break;
             }
