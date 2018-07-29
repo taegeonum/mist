@@ -53,13 +53,15 @@ public final class RoundRobinGroupAssignerImpl implements GroupAssigner {
   public void assignGroup(final Group groupInfo) {
     final List<EventProcessor> eps = groupAllocationTable.getEventProcessorsNotRunningIsolatedGroup();
 
+    /*
     if (!counterMap.containsKey(groupInfo.getApplicationInfo().getApplicationId())) {
       counterMap.putIfAbsent(groupInfo.getApplicationInfo().getApplicationId(), new AtomicInteger());
     }
     System.out.println("Assign " + groupInfo.getGroupId());
     final AtomicInteger counter = counterMap.get(groupInfo.getApplicationInfo().getApplicationId());
+    */
 
-    final EventProcessor ep = eps.get(counter.getAndIncrement() % eps.size());
+    final EventProcessor ep = eps.get(index.getAndIncrement() % eps.size());
     groupAllocationTable.getValue(ep).add(groupInfo);
     groupInfo.setEventProcessor(ep);
   }
