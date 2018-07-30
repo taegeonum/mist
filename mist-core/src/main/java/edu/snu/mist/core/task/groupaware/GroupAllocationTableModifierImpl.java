@@ -225,6 +225,7 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               // TODO
               break;
             case REBALANCE:
+              /*
               final StringBuilder b = new StringBuilder();
               for (final String appId : appCounter.keySet()) {
                 b.append(appId);
@@ -233,7 +234,8 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
                 b.append("\n");
               }
               LOG.info(b.toString());
-
+              */
+              
               loadUpdater.update();
               //isolatedGroupReassigner.reassignIsolatedGroups();
               //groupMerger.groupMerging();

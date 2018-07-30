@@ -177,6 +177,7 @@ public final class PTQGroupAllocationTableModifier implements GroupAllocationTab
               // TODO
               break;
             case REBALANCE:
+              /*
               final StringBuilder b = new StringBuilder();
               for (final String appId : appCounter.keySet()) {
                 b.append(appId);
@@ -185,6 +186,7 @@ public final class PTQGroupAllocationTableModifier implements GroupAllocationTab
                 b.append("\n");
               }
               LOG.info(b.toString());
+              */
               break;
             case ISOLATION:
               break;
