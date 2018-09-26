@@ -210,6 +210,8 @@ public final class ThreadBasedQueryManagerImpl implements QueryManager {
       final ExecutionDag executionDag =
               dagGenerator.generate(configDag, avroDag.getJarPaths());
 
+      System.out.println("Jar file path: " + avroDag.getJarPaths());
+
       // Execute the execution dag
       start(executionDag);
 
