@@ -126,7 +126,7 @@ public final class ApplicationAwareQueryAllocationManager implements QueryAlloca
 
       final Random random = new Random();
       for (int i = 0; i < size; i++) {
-        arrayList.add(allTask.get(random.nextInt(size)));
+        arrayList.add(allTask.get(random.nextInt(allTask.size())));
       }
       appTaskMap.putIfAbsent(appId, arrayList);
     }
