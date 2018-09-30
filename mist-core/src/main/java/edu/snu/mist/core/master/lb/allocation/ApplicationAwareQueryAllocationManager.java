@@ -29,6 +29,8 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
 
 /**
@@ -65,6 +67,8 @@ public final class ApplicationAwareQueryAllocationManager implements QueryAlloca
    * The threshold for determining underloaded task.
    */
   private final double underloadedTaskThreshold;
+
+  private final ConcurrentMap<String, List<String>> appTaskMap = new ConcurrentHashMap<>();
 
   @Inject
   private ApplicationAwareQueryAllocationManager(
@@ -114,6 +118,35 @@ public final class ApplicationAwareQueryAllocationManager implements QueryAlloca
   // TODO: [MIST-519] Consider query reallocation.
   @Override
   public IPAddress getAllocatedTask(final String appId) {
+    List<String> list = appTaskMap.get(appId);
+    if (list == null) {
+      final List<String> allTask = taskStatsMap.getTaskList();
+      final int size = Math.min(allTask.size(), 3);
+      final List<String> arrayList = new ArrayList<>(size);
+
+      final Random random = new Random();
+      for (int i = 0; i < size; i++) {
+        arrayList.add(allTask.get(random.nextInt(size)));
+      }
+      appTaskMap.putIfAbsent(appId, arrayList);
+    }
+
+    list = appTaskMap.get(appId);
+    // send to the lowest loaded worker
+    String lowestAddress = null;
+    double load = Double.POSITIVE_INFINITY;
+    for (final String addr : list) {
+      final double l = taskStatsMap.get(addr).getTaskLoad();
+      if (load > l) {
+        load = l;
+        lowestAddress = addr;
+      }
+    }
+
+    final IPAddress result = taskAddressInfoMap.getClientToTaskAddress(lowestAddress);
+    return result;
+    /*
+
     // Acquire read lock starting task allocation.
     taskInfoRWLock.readLock().lock();
     final List<String> taskList = appTaskListMap.getTaskListForApp(appId);
@@ -145,5 +178,6 @@ public final class ApplicationAwareQueryAllocationManager implements QueryAlloca
       taskInfoRWLock.readLock().unlock();
       return result;
     }
+    */
   }
 }
