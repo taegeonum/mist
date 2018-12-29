@@ -132,6 +132,7 @@ public final class MQTTSharedResource implements MQTTResource {
    */
   private final AtomicInteger idGen = new AtomicInteger(0);
 
+
   @Inject
   private MQTTSharedResource(
       @Parameter(MqttSourceClientNumPerBroker.class) final int mqttSourceClientNumPerBrokerParam,
@@ -186,12 +187,13 @@ public final class MQTTSharedResource implements MQTTResource {
       return client;
     } else {
       final Map<String, IMqttAsyncClient> myTopicPublisherMap = topicPublisherMap.get(brokerURI);
+      /*
       if (myTopicPublisherMap.containsKey(topic)) {
         final IMqttAsyncClient client = myTopicPublisherMap.get(topic);
         publisherSinkNumMap.replace(client, publisherSinkNumMap.get(client) + 1);
         this.publisherLock.unlock();
         return client;
-      } else {
+      } else {*/
         int minSinkNum = Integer.MAX_VALUE;
         IMqttAsyncClient client = null;
         for (final IMqttAsyncClient mqttAsyncClient: brokerPublisherMap.get(brokerURI)) {
@@ -204,7 +206,7 @@ public final class MQTTSharedResource implements MQTTResource {
         myTopicPublisherMap.put(topic, client);
         this.publisherLock.unlock();
         return client;
-      }
+      //}
     }
   }
 
@@ -291,13 +293,15 @@ public final class MQTTSharedResource implements MQTTResource {
       return gen;
     } else {
       final Map<String, MQTTSubscribeClient> myTopicSubscriberMap = topicSubscriberMap.get(brokerURI);
-      if (myTopicSubscriberMap.containsKey(topic)) {
+      // no group sharing
+      /*if (myTopicSubscriberMap.containsKey(topic)) {
         // This is for group-sharing.
         final MQTTSubscribeClient client = myTopicSubscriberMap.get(topic);
         final MQTTDataGenerator gen = client.connectToTopic(topic);
         this.subscriberLock.unlock();
         return gen;
       } else {
+      */
         // This is a new group.
         int minSourceNum = Integer.MAX_VALUE;
         MQTTSubscribeClient client = null;
@@ -312,7 +316,7 @@ public final class MQTTSharedResource implements MQTTResource {
         final MQTTDataGenerator gen = client.connectToTopic(topic);
         this.subscriberLock.unlock();
         return gen;
-      }
+      //}
     }
   }
 
