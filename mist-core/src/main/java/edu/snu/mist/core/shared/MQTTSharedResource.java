@@ -187,13 +187,13 @@ public final class MQTTSharedResource implements MQTTResource {
       return client;
     } else {
       final Map<String, IMqttAsyncClient> myTopicPublisherMap = topicPublisherMap.get(brokerURI);
-      /*
       if (myTopicPublisherMap.containsKey(topic)) {
+          System.out.println("Sink topic duplicate??: " + topic);
         final IMqttAsyncClient client = myTopicPublisherMap.get(topic);
         publisherSinkNumMap.replace(client, publisherSinkNumMap.get(client) + 1);
         this.publisherLock.unlock();
         return client;
-      } else {*/
+      } else {
         int minSinkNum = Integer.MAX_VALUE;
         IMqttAsyncClient client = null;
         for (final IMqttAsyncClient mqttAsyncClient: brokerPublisherMap.get(brokerURI)) {
@@ -206,7 +206,7 @@ public final class MQTTSharedResource implements MQTTResource {
         myTopicPublisherMap.put(topic, client);
         this.publisherLock.unlock();
         return client;
-      //}
+      }
     }
   }
 
