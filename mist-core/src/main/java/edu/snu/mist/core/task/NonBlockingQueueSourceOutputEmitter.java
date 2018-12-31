@@ -127,6 +127,9 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   @Override
   public void emitData(final MistDataEvent data) {
+      if (data == null) {
+        return;
+      }
     try {
       //System.out.println("Event is added at sourceOutputEmitter: " + data.getValue() + ", # events: " + n);
       queue.add(data);
