@@ -131,7 +131,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       //System.out.println("Event is added at sourceOutputEmitter: " + data.getValue() + ", # events: " + n);
       queue.add(data);
       final int n = numEvents.getAndIncrement();
-      if (n == 0) {
+      if (n == 0 && query != null) {
         query.insert(this);
       }
     } catch (final Exception e) {
@@ -147,7 +147,7 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
       queue.add(data);
       final int n = numEvents.getAndIncrement();
 
-      if (n == 0) {
+      if (n == 0 && query != null) {
         query.insert(this);
       }
     } catch (final Exception e) {
