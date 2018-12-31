@@ -15,6 +15,7 @@
  */
 package edu.snu.mist.core.configs;
 
+import edu.snu.mist.core.parameters.GroupRebalance;
 import edu.snu.mist.core.rpc.DefaultClientToTaskMessageImpl;
 import edu.snu.mist.core.rpc.DefaultMasterToTaskMessageImpl;
 import edu.snu.mist.core.shared.parameters.MqttSinkClientNumPerBroker;
@@ -91,6 +92,8 @@ public final class MistTaskConfigs implements MistConfigs {
    */
   private final int recoveryThreadsNum;
 
+  private final boolean groupRebalance;
+
   @Inject
   private MistTaskConfigs(@Parameter(DefaultNumEventProcessors.class) final int numEventProcessors,
                           @Parameter(MqttSourceKeepAliveSec.class) final int mqttSourceKeepAliveSec,
@@ -99,6 +102,7 @@ public final class MistTaskConfigs implements MistConfigs {
                           @Parameter(MqttSinkClientNumPerBroker.class) final int mqttSinkClientNumPerBroker,
                           @Parameter(GroupRebalancingPeriod.class) final long rebalancingPeriod,
                           @Parameter(ProcessingTimeout.class) final long processingTimeout,
+                          @Parameter(GroupRebalance.class) final boolean groupRebalance,
                           @Parameter(GroupPinningTime.class) final long groupPinningTime,
                           @Parameter(PeriodicCheckpointPeriod.class) final long checkpointPeriod,
                           @Parameter(RecoveryThreadsNum.class) final int recoveryThreadsNum) {
@@ -110,6 +114,7 @@ public final class MistTaskConfigs implements MistConfigs {
     this.mqttSinkClientNumPerBroker = mqttSinkClientNumPerBroker;
     this.groupPinningTime = groupPinningTime;
     this.processingTimeout = processingTimeout;
+    this.groupRebalance = groupRebalance;
     this.checkpointPeriod = checkpointPeriod;
     this.recoveryThreadsNum = recoveryThreadsNum;
   }
@@ -132,6 +137,7 @@ public final class MistTaskConfigs implements MistConfigs {
     jcb.bindNamedParameter(GroupPinningTime.class, Long.toString(groupPinningTime));
     jcb.bindNamedParameter(PeriodicCheckpointPeriod.class, Long.toString(checkpointPeriod));
     jcb.bindNamedParameter(RecoveryThreadsNum.class, Integer.toString(recoveryThreadsNum));
+    jcb.bindNamedParameter(GroupRebalance.class, Boolean.toString(groupRebalance));
 
     // Implementation
     jcb.bindImplementation(ClientToTaskMessage.class, DefaultClientToTaskMessageImpl.class);

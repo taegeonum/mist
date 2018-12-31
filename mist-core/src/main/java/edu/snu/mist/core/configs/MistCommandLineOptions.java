@@ -63,6 +63,7 @@ public final class MistCommandLineOptions {
         .registerShortNameOfClass(MqttSourceKeepAliveSec.class)
         .registerShortNameOfClass(MqttSinkKeepAliveSec.class)
         .registerShortNameOfClass(MqttSourceClientNumPerBroker.class)
+            .registerShortNameOfClass(GroupRebalance.class)
         .registerShortNameOfClass(MqttSinkClientNumPerBroker.class)
         .registerShortNameOfClass(ProcessingTimeout.class)
         .registerShortNameOfClass(GroupPinningTime.class)

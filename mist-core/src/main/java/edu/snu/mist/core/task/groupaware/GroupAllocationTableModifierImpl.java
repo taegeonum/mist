@@ -15,6 +15,7 @@
  */
 package edu.snu.mist.core.task.groupaware;
 
+import edu.snu.mist.core.parameters.GroupRebalance;
 import edu.snu.mist.core.task.Query;
 import edu.snu.mist.core.task.checkpointing.CheckpointManager;
 import edu.snu.mist.core.task.groupaware.eventprocessor.EventProcessor;
@@ -25,6 +26,7 @@ import edu.snu.mist.core.task.groupaware.rebalancer.GroupRebalancer;
 import edu.snu.mist.core.task.groupaware.rebalancer.GroupSplitter;
 import edu.snu.mist.core.task.groupaware.rebalancer.LoadUpdater;
 import org.apache.reef.io.Tuple;
+import org.apache.reef.tang.annotations.Parameter;
 
 import javax.inject.Inject;
 import java.util.Collection;
@@ -116,6 +118,7 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
   private final CheckpointManager checkpointManager;
   private final ConcurrentMap<String, AtomicInteger> appCounter = new ConcurrentHashMap<>();
 
+  private final boolean groupRebalance;
 
   @Inject
   private GroupAllocationTableModifierImpl(final GroupAllocationTable groupAllocationTable,
@@ -126,6 +129,7 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
                                            final GroupMerger groupMerger,
                                            final GroupSplitter groupSplitter,
                                            final GroupMap groupMap,
+                                           @Parameter(GroupRebalance.class) final boolean groupRebalance,
                                            final TaskStatsUpdater taskStatsUpdater,
                                            final CheckpointManager checkpointManager) {
     this.groupAllocationTable = groupAllocationTable;
@@ -136,6 +140,7 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
     this.loadUpdater = loadUpdater;
     this.groupIsolator = groupIsolator;
     this.groupMerger = groupMerger;
+    this.groupRebalance = groupRebalance;
     this.groupSplitter = groupSplitter;
     this.groupMap = groupMap;
     this.taskStatsUpdater = taskStatsUpdater;
@@ -240,11 +245,13 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               //isolatedGroupReassigner.reassignIsolatedGroups();
               //groupMerger.groupMerging();
 
-              // 1. reassignment and merging
-              groupRebalancer.triggerRebalancing();
+              if (groupRebalance) {
+                // 1. reassignment and merging
+                groupRebalancer.triggerRebalancing();
 
-              // 2. split groups
-              groupSplitter.splitGroup();
+                // 2. split groups
+                groupSplitter.splitGroup();
+              }
 
               // 3. update the task stats to master
               taskStatsUpdater.updateTaskStatsToMaster(groupAllocationTable);

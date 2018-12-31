@@ -20,9 +20,7 @@ import org.eclipse.paho.client.mqttv3.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,6 +66,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
    */
   private final List<String> topics;
 
+  private final ExecutorService executor;
   /**
    * Construct a client connected with target MQTT broker.
    * @param brokerURI the URI of broker to connect
@@ -82,6 +81,7 @@ public final class MQTTSubscribeClient implements MqttCallback {
     this.subscribeLock = new Object();
     this.mqttSourceKeepAliveSec = mqttSourceKeepAliveSec;
     this.topics = new LinkedList<>();
+    this.executor = Executors.newSingleThreadExecutor();
   }
 
   /**
@@ -235,19 +235,21 @@ public final class MQTTSubscribeClient implements MqttCallback {
 
   @Override
   public void messageArrived(final String topic, final MqttMessage message) {
-    final String[] split = topic.split("/");
-    if (split.length == 5) {
-      final String fixedTopic = String.join("/", split[0], split[1], split[2], split[3]);
-      final Queue<MQTTDataGenerator> dataGeneratorList = dataGeneratorListMap.get(fixedTopic);
-      if (dataGeneratorList != null) {
-        dataGeneratorList.forEach(dataGenerator -> dataGenerator.emitData(message));
+    executor.execute(() -> {
+      final String[] split = topic.split("/");
+      if (split.length == 5) {
+        final String fixedTopic = String.join("/", split[0], split[1], split[2], split[3]);
+        final Queue<MQTTDataGenerator> dataGeneratorList = dataGeneratorListMap.get(fixedTopic);
+        if (dataGeneratorList != null) {
+          dataGeneratorList.forEach(dataGenerator -> dataGenerator.emitData(message));
+        }
+      } else {
+        final Queue<MQTTDataGenerator> dataGeneratorList = dataGeneratorListMap.get(topic);
+        if (dataGeneratorList != null) {
+          dataGeneratorList.forEach(dataGenerator -> dataGenerator.emitData(message));
+        }
       }
-    } else {
-      final Queue<MQTTDataGenerator> dataGeneratorList = dataGeneratorListMap.get(topic);
-      if (dataGeneratorList != null) {
-        dataGeneratorList.forEach(dataGenerator -> dataGenerator.emitData(message));
-      }
-    }
+    });
   }
 
   @Override
