@@ -223,6 +223,9 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
       while (query.getGroup() == null) {
         Thread.sleep(100);
       }
+
+      LOG.info("Query " + queryId + " group " + query.getGroup());
+
       // Store the query to the disk.
       checkpointManager.storeQuery(query.getGroup(), avroDag);
 

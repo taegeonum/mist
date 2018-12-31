@@ -65,6 +65,7 @@ public final class MQTTDataGenerator implements DataGenerator<MqttMessage> {
    * @param message the message to emit
    */
   void emitData(final MqttMessage message) {
+    LOG.info("Get " + topic + " message from MQTT source: " + new String(message.getPayload()));
     if (!closed.get() && eventGenerator != null) {
       eventGenerator.emitData(message);
     }

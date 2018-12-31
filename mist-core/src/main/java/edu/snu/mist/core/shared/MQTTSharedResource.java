@@ -269,6 +269,9 @@ public final class MQTTSharedResource implements MQTTResource {
   public MQTTDataGenerator getDataGenerator(
       final String brokerURI,
       final String topic) {
+
+    LOG.log(Level.INFO, "Get data generator for {0}/{1}", new Object[] {topic, brokerURI});
+
     this.subscriberLock.lock();
     // TODO: Provide group information from QueryManager
     final List<MQTTSubscribeClient> subscribeClientList = brokerSubscriberMap.get(brokerURI);
@@ -287,6 +290,7 @@ public final class MQTTSharedResource implements MQTTResource {
       topicSubscriberMap.put(brokerURI, myTopicSubscriberMap);
       final MQTTSubscribeClient client = newSubscribeClientList.get(0);
       myTopicSubscriberMap.put(topic, client);
+      LOG.log(Level.INFO, "Client {0} for topic {1}", new Object[] {client, topic});
       subscriberSourceNumMap.replace(client, subscriberSourceNumMap.get(client) + 1);
       final MQTTDataGenerator gen = client.connectToTopic(topic);
       this.subscriberLock.unlock();
@@ -311,6 +315,7 @@ public final class MQTTSharedResource implements MQTTResource {
             client = mqttSubcribeClient;
           }
         }
+        LOG.info("AAA Topic " + topic + ", client: " + client);
         subscriberSourceNumMap.replace(client, subscriberSourceNumMap.get(client) + 1);
         myTopicSubscriberMap.put(topic, client);
         final MQTTDataGenerator gen = client.connectToTopic(topic);
