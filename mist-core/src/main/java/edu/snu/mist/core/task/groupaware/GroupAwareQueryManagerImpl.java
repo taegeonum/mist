@@ -43,6 +43,7 @@ import org.apache.reef.tang.exceptions.InjectionException;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -245,9 +246,18 @@ public final class GroupAwareQueryManagerImpl implements QueryManager {
                                    final DAG<ConfigVertex, MISTEdge> configDag)
       throws ClassNotFoundException, IOException {
     final Query query = new DefaultQueryImpl(queryId);
+    final CountDownLatch countDownLatch = new CountDownLatch(1);
     groupAllocationTableModifier.addEvent(new WritingEvent(WritingEvent.EventType.QUERY_ADD,
-        new Tuple<>(applicationInfo, query)));
+        new Tuple<>(countDownLatch, new Tuple<>(applicationInfo, query))));
     // Start the submitted dag
+
+      // waiting for the query addition
+    try {
+      countDownLatch.await();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
     applicationInfo.getQueryStarter().start(queryId, query, configDag, applicationInfo.getJarFilePath());
     return query;
   }

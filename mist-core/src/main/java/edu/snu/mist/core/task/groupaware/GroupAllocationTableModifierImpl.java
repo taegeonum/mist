@@ -198,7 +198,10 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
               break;
             }
             case QUERY_ADD: {
-              final Tuple<ApplicationInfo, Query> tuple = (Tuple<ApplicationInfo, Query>) event.getValue();
+              final Tuple<CountDownLatch, Tuple<ApplicationInfo, Query>> data =
+                      (Tuple<CountDownLatch, Tuple<ApplicationInfo, Query>>) event.getValue();
+              final CountDownLatch cd = data.getKey();
+              final Tuple<ApplicationInfo, Query> tuple = data.getValue();
               final ApplicationInfo applicationInfo = tuple.getKey();
               final Query query = tuple.getValue();
               // TODO: pluggable
@@ -209,6 +212,7 @@ public final class GroupAllocationTableModifierImpl implements GroupAllocationTa
 
               query.setGroup(minGroup);
               minGroup.addQuery(query);
+              cd.countDown();
               break;
             }
             case GROUP_REMOVE: {
