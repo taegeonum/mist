@@ -26,14 +26,13 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 
 /**
  * This emitter enqueues events to the source event queue.
  *  @param <I>
  */
 public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutputEmitter {
-  private static final Logger LOG = Logger.getLogger(NonBlockingQueueSourceOutputEmitter.class.getName());
+
   /**
    * A queue for events.
    */
@@ -90,8 +89,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
   private void process(final MistEvent event,
                        final Direction direction,
                        final PhysicalOperator operator) {
-
-    LOG.info("Process data " + event + " from query " + query.getId());
     try {
       if (event.isData()) {
         if (direction == Direction.LEFT) {
@@ -130,9 +127,6 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
 
   @Override
   public void emitData(final MistDataEvent data) {
-
-    LOG.info("Emit data " + data.getValue() + " from query " + query.getId());
-
       if (data == null) {
         return;
       }

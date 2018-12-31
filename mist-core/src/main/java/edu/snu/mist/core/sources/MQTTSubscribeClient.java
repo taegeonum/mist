@@ -93,7 +93,6 @@ public final class MQTTSubscribeClient implements MqttCallback {
    * @return requested MQTTDataGenerator connected with the target broker and topic
    */
   public MQTTDataGenerator connectToTopic(final String topic) {
-    LOG.log(Level.INFO, "Connect to topic {} ", new Object[] {topic});
     final String[] split = topic.split("/");
     if (split.length == 5) {
       final String fixedTopic = String.join("/", split[0], split[1], split[2], split[3]);
@@ -112,8 +111,6 @@ public final class MQTTSubscribeClient implements MqttCallback {
         dataGeneratorList = new ConcurrentLinkedQueue<>();
         dataGeneratorListMap.putIfAbsent(topic, dataGeneratorList);
       }
-
-      LOG.log(Level.INFO, "Add data generator for topic {} ", new Object[] {topic});
       final MQTTDataGenerator dataGenerator = new MQTTDataGenerator(this, topic);
       dataGeneratorListMap.get(topic).add(dataGenerator);
       return dataGenerator;
@@ -238,7 +235,6 @@ public final class MQTTSubscribeClient implements MqttCallback {
 
   @Override
   public void messageArrived(final String topic, final MqttMessage message) {
-    LOG.info("BBB Message arrived from " + topic + ", message: " + new String(message.getPayload()));
     executor.execute(() -> {
       final String[] split = topic.split("/");
       if (split.length == 5) {
