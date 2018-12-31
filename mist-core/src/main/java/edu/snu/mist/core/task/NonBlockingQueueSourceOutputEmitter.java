@@ -138,7 +138,8 @@ public final class NonBlockingQueueSourceOutputEmitter<I> implements SourceOutpu
         query.insert(this);
       }
     } catch (final Exception e) {
-        e.printStackTrace();
+      e.printStackTrace();
+      System.out.println("Data: " + data.getValue());
       throw new RuntimeException(e);
     }
   }
